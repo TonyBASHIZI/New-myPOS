@@ -13,6 +13,107 @@
 		}
 
 	</style>
+	<style>
+		.checkout-modal-box {
+		    width: 440px;
+		    background: #fff;
+		    border-radius: 14px;
+		    padding: 0;
+		    margin: auto;
+		    margin-top: 90px;
+		    overflow: hidden;
+		    box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+		}
+		.checkout-modal-header {
+		    background: linear-gradient(135deg, #2c3e50, #34495e);
+		    color: #fff;
+		    padding: 18px 24px;
+		}
+		.checkout-modal-body {
+		    padding: 22px 24px;
+		}
+		.checkout-summary-row {
+		    display: flex;
+		    justify-content: space-between;
+		    font-size: 14px;
+		    color: #6c757d;
+		    padding: 4px 0;
+		}
+		.checkout-total-row {
+		    display: flex;
+		    justify-content: space-between;
+		    font-size: 22px;
+		    font-weight: 700;
+		    color: #27ae60;
+		    border-top: 1px dashed #dee2e6;
+		    margin-top: 8px;
+		    padding-top: 10px;
+		}
+		.checkout-rate-note {
+		    font-size: 12px;
+		    color: #856404;
+		    background: #fff8e1;
+		    border: 1px solid #ffe69c;
+		    border-radius: 8px;
+		    padding: 8px 12px;
+		    margin-top: 14px;
+		    display: flex;
+		    align-items: center;
+		    gap: 8px;
+		}
+		.checkout-tva-note {
+		    font-size: 11px;
+		    color: #adb5bd;
+		    text-align: right;
+		    margin-top: -4px;
+		}
+</style>
+
+	<div class="modal fade" id="customerModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:12px;">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="fa fa-star text-warning"></i> Customer Loyalty</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+
+        <label class="form-label small text-muted">Phone Number</label>
+        <div class="input-group mb-3">
+            <input type="text" class="form-control js-customer-phone" placeholder="e.g. 0812345678">
+            <button type="button" class="btn btn-secondary" onclick="lookup_customer()">
+                <i class="fa fa-search"></i> Check
+            </button>
+        </div>
+
+        <!-- shown when phone is found -->
+        <div class="js-customer-found d-none alert alert-success">
+            <div><b class="js-found-name"></b></div>
+            <div>Current points: <b class="js-found-points"></b></div>
+        </div>
+
+        <!-- shown when phone is NOT found -->
+        <div class="js-customer-new d-none">
+            <label class="form-label small text-muted">Name</label>
+            <input type="text" class="form-control mb-2 js-customer-name" placeholder="Customer name">
+            <button type="button" class="btn btn-success w-100" onclick="register_customer()">
+                <i class="fa fa-user-plus"></i> Register & Attach
+            </button>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+       
+		        <div class="modal-footer">
+		    <button type="button" class="btn btn-outline-danger" onclick="remove_customer_from_sale()">Remove customer</button>
+		    <button type="button" class="btn btn-primary" onclick="continue_to_payment()">
+		        <i class="fa fa-arrow-right"></i> Continue to Payment
+		    </button>
+		</div>
+      </div>
+    </div>
+  </div>
+</div>
 	<div class="d-flex">
 		<div style="min-height:600px;" class="shadow-sm col-7 p-4">
 			
@@ -68,6 +169,10 @@
 			        Clean
 			    </button>
 
+			    <button type="button" class="btn btn-outline-dark py-2 mb-2 w-100" data-bs-toggle="modal" data-bs-target="#customerModal">
+				    <i class="fa fa-star"></i> <span class="js-customer-label">Add Customer (Loyalty)</span>
+				</button>
+
 			</div>
 			</div>
 			<div class="mb-3">
@@ -81,17 +186,51 @@
 <!--modals-->
 
 	<!--enter amount modal-->
-	<div role="close-button" onclick="hide_modal(event,'amount-paid')" class="js-amount-paid-modal hide" style="animation: appear .5s ease;background-color: #000000bb; width: 100%;height: 100%;position: fixed;left:0px;top:0px;z-index: 4;">
+	<div role="close-button" onclick="hide_modal(event,'amount-paid')" class="js-amount-paid-modal hide" style="animation: appear .5s ease;background-color: #000000bb; width: 100%;height: 100%;position: fixed;left:0px;top:0px;z-index: 1050;">
 
-		<div style="width:500px;min-height:200px;background-color:white;padding:10px;margin:auto;margin-top:100px">
-			<h4>Checkout <button role="close-button" onclick="hide_modal(event,'amount-paid')" class="btn btn-danger float-end p-0 px-2">X</button></h4>
-			<br>
-			<input onkeyup="if(event.keyCode == 13)validate_amount_paid(event)"  type="text" class="js-amount-paid-input form-control" placeholder="Enter amount paid">
-			<br>
-			<button role="close-button" onclick="hide_modal(event,'amount-paid')"  class="btn btn-secondary">Cancel</button>
-			<button onclick="validate_amount_paid(event)" class="btn btn-primary float-end">Validate</button>
-		</div>
-	</div>
+    <div class="checkout-modal-box">
+
+        <div class="checkout-modal-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fa fa-cash-register me-2"></i>Checkout</h5>
+            <button role="close-button" onclick="hide_modal(event,'amount-paid')" class="btn-close btn-close-white"></button>
+        </div>
+
+        <div class="checkout-modal-body">
+
+            <div class="checkout-summary-row">
+                <span>Subtotal</span>
+                <span class="js-checkout-subtotal">$0.00</span>
+            </div>
+            <div class="checkout-summary-row">
+                <span>TVA (16%)</span>
+                <span class="js-checkout-tva">$0.00</span>
+            </div>
+            <div class="checkout-tva-note">TVA included in total</div>
+
+            <div class="checkout-total-row">
+                <span>Total Due</span>
+                <span class="js-gtotal-display">$0.00</span>
+            </div>
+
+            <label class="form-label small text-muted mt-3 mb-1">Amount Paid</label>
+            <input onkeyup="if(event.keyCode == 13)validate_amount_paid(event)" type="text" class="js-amount-paid-input form-control form-control-lg" placeholder="Enter amount paid">
+
+            <div class="checkout-rate-note">
+                <i class="fa fa-circle-info"></i>
+                <span>Paying in Francs? Use the current exchange rate to convert before entering the amount.</span>
+            </div>
+
+        </div>
+
+        <div class="modal-footer">
+            <button role="close-button" onclick="hide_modal(event,'amount-paid')" class="btn btn-secondary">Cancel</button>
+            <button onclick="validate_amount_paid(event)" class="btn btn-primary">
+                <i class="fa fa-check me-1"></i>Validate
+            </button>
+        </div>
+
+    </div>
+</div>
 	<!--end enter amount modal-->
 
 	<!--change modal-->
@@ -359,14 +498,18 @@ window.onload = function() {
 		}
 	}
 
-
 	function validate_cart_before_payment() {
-    
+
+    if(ITEMS.length == 0)
+    {
+        show_toast("error", "Empty cart", "Please add products before validating.");
+        return false;
+    }
+
     for (var i = 0; i < ITEMS.length; i++) {
         // On cherche le produit correspondant dans la liste globale PRODUCTS
         // (Ou on compare avec la propriété max_qty si tu l'as stockée)
         let productInStock = PRODUCTS.find(p => p.id == ITEMS[i].id);
-
         if (productInStock) {
             if (ITEMS[i].qty > productInStock.qty) {
                 alert("Error Stock : '" + ITEMS[i].description + "' Stock available is " + productInStock.qty + " Item but you put Qty " + ITEMS[i].qty + " in cart, edit Qty and try again");
@@ -376,8 +519,9 @@ window.onload = function() {
         }
     }
     
-    // Si tout est ok, on affiche le modal de paiement
-    show_modal('amount-paid');
+    // Si tout est ok, on ouvre le popup client AVANT le paiement
+    var customerModal = new bootstrap.Modal(document.getElementById('customerModal'));
+    customerModal.show();
 }
 
 function product_html(data, index) {
@@ -577,46 +721,49 @@ if (data.qty <= 5) {
 		refresh_items_display();
 	}
 
-	function check_for_enter_key(e)
-	{
-
-		if(e.keyCode == 13)
+		function check_for_enter_key(e)
 		{
-			BARCODE = true;
-			search_item(e);
-		}
-	}
 
-	function show_modal(modal)
-	{
-
-		if(modal == "amount-paid"){
-
-			if(ITEMS.length == 0){
-
-				alert("Veuiller ajouter un produit dans le pannier");
-				return;
+			if(e.keyCode == 13)
+			{
+				BARCODE = true;
+				search_item(e);
 			}
-			var mydiv = document.querySelector(".js-amount-paid-modal");
-			mydiv.classList.remove("hide");
-
-			var amount_paid_input = mydiv.querySelector(".js-amount-paid-input");
-            amount_paid_input.value = GTOTAL.toFixed(2); // Affiche le total formaté
-
-			amount_paid_input.focus();
-		}else
-		if(modal == "change"){
- 
-			var mydiv = document.querySelector(".js-change-modal");
-			mydiv.classList.remove("hide");
-
-			mydiv.querySelector(".js-change-input").innerHTML = CHANGE;
-			mydiv.querySelector(".js-btn-close-change").focus();
 		}
-		
 
+		function show_modal(modal)
+	{
+	    if(modal == "amount-paid"){
+
+	        if(ITEMS.length == 0){
+	            show_toast("error", "Empty cart", "Please add products first.");
+	            return;
+	        }
+	        var mydiv = document.querySelector(".js-amount-paid-modal");
+	        mydiv.classList.remove("hide");
+
+	        var amount_paid_input = mydiv.querySelector(".js-amount-paid-input");
+	        amount_paid_input.value = GTOTAL.toFixed(2);
+
+	        // NEW — populate subtotal/TVA/total display
+	        var TVA_RATE = 0.16; // adjust to your actual local rate
+	        var subtotal = GTOTAL / (1 + TVA_RATE);
+	        var tva_amount = GTOTAL - subtotal;
+
+	        mydiv.querySelector(".js-checkout-subtotal").innerHTML = "$" + subtotal.toFixed(2);
+	        mydiv.querySelector(".js-checkout-tva").innerHTML = "$" + tva_amount.toFixed(2);
+	        mydiv.querySelector(".js-gtotal-display").innerHTML = "$" + GTOTAL.toFixed(2);
+
+	        amount_paid_input.focus();
+	    }else
+	    if(modal == "change"){
+	        var mydiv = document.querySelector(".js-change-modal");
+	        mydiv.classList.remove("hide");
+	        mydiv.querySelector(".js-change-input").innerHTML = CHANGE;
+	        mydiv.querySelector(".js-btn-close-change").focus();
+	    }
 	}
-	
+		
 	function hide_modal(e,modal)
 {
     if(e == true || e.target.getAttribute("role") == "close-button")
@@ -635,7 +782,7 @@ if (data.qty <= 5) {
 }
 
 function validate_amount_paid(e) {
-    var amount_input = e.currentTarget.parentNode.querySelector(".js-amount-paid-input");
+    var amount_input = document.querySelector(".js-amount-paid-input");
     var amount = amount_input.value.trim();
 	var sale_date = document.querySelector(".js-sale-date").value;
     
@@ -685,7 +832,8 @@ function validate_amount_paid(e) {
     amount_paid: amount,
     balance: current_balance,
     date: sale_date,
-    order_id: CURRENT_ORDER_ID
+    order_id: CURRENT_ORDER_ID,
+    customer_phone: CURRENT_CUSTOMER_PHONE
 });
 
   // REMOVE this whole save_order() block from inside validate_amount_paid()
@@ -705,6 +853,9 @@ function validate_amount_paid(e) {
     ITEMS = [];
     refresh_items_display();
     amount_input.value = "";
+
+    // Reset customer after successful checkout
+	remove_customer_from_sale();
 
     // Recharger les produits
     send_data({
@@ -796,8 +947,124 @@ function save_order()
     ajax.open('post', 'index.php?pg=ajax', true);
     ajax.send(JSON.stringify(data));
 }
+</script>
 
+	<script>
+		var CURRENT_CUSTOMER_PHONE = null;
+var CURRENT_CUSTOMER_NAME  = null;
 
+function lookup_customer()
+{
+    var phone = document.querySelector(".js-customer-phone").value.trim();
+    if(phone == "")
+    {
+        show_toast("error", "Missing phone", "Please enter a phone number.");
+        return;
+    }
+
+    var ajax = new XMLHttpRequest();
+    ajax.addEventListener('readystatechange', function(){
+        if(ajax.readyState == 4 && ajax.status == 200)
+        {
+            var obj = JSON.parse(ajax.responseText);
+
+            if(obj.found)
+            {
+                CURRENT_CUSTOMER_PHONE = phone;
+                CURRENT_CUSTOMER_NAME  = obj.name;
+
+                document.querySelector(".js-found-name").innerHTML = obj.name;
+                document.querySelector(".js-found-points").innerHTML = parseFloat(obj.points).toFixed(2) + " pts";
+                document.querySelector(".js-customer-found").classList.remove("d-none");
+                document.querySelector(".js-customer-new").classList.add("d-none");
+
+                update_customer_label();
+            }else{
+                document.querySelector(".js-customer-found").classList.add("d-none");
+                document.querySelector(".js-customer-new").classList.remove("d-none");
+            }
+        }
+    });
+    ajax.open('post', 'index.php?pg=ajax', true);
+    ajax.send(JSON.stringify({ data_type: "lookup_customer", phone: phone }));
+}
+
+function register_customer()
+{
+    var phone = document.querySelector(".js-customer-phone").value.trim();
+    var name  = document.querySelector(".js-customer-name").value.trim();
+
+    if(phone == "" || name == "")
+    {
+        show_toast("error", "Missing info", "Phone and name are both required.");
+        return;
+    }
+
+    var ajax = new XMLHttpRequest();
+    ajax.addEventListener('readystatechange', function(){
+        if(ajax.readyState == 4 && ajax.status == 200)
+        {
+            var obj = JSON.parse(ajax.responseText);
+
+            if(obj.success)
+            {
+                CURRENT_CUSTOMER_PHONE = phone;
+                CURRENT_CUSTOMER_NAME  = name;
+                update_customer_label();
+                show_toast("success", "Customer Registered", name + " added to loyalty program.");
+
+                var modalEl = document.getElementById('customerModal');
+                bootstrap.Modal.getInstance(modalEl).hide();
+            }else{
+                show_toast("error", "Registration failed", obj.message || "Please try again.");
+            }
+        }
+    });
+    ajax.open('post', 'index.php?pg=ajax', true);
+    ajax.send(JSON.stringify({ data_type: "register_customer", phone: phone, name: name }));
+}
+
+function remove_customer_from_sale()
+{
+    CURRENT_CUSTOMER_PHONE = null;
+    CURRENT_CUSTOMER_NAME  = null;
+    update_customer_label();
+    document.querySelector(".js-customer-phone").value = "";
+    document.querySelector(".js-customer-name").value = "";
+    document.querySelector(".js-customer-found").classList.add("d-none");
+    document.querySelector(".js-customer-new").classList.add("d-none");
+}
+
+function update_customer_label()
+{
+    var label = document.querySelector(".js-customer-label");
+    label.innerHTML = CURRENT_CUSTOMER_PHONE
+        ? CURRENT_CUSTOMER_NAME + " (" + CURRENT_CUSTOMER_PHONE + ")"
+        : "Add Customer (Loyalty)";
+}
+	
+function continue_to_payment()
+{
+    var customerModalEl = document.getElementById('customerModal');
+    var customerModal = bootstrap.Modal.getInstance(customerModalEl);
+    if(customerModal) customerModal.hide();
+
+    // wait for the modal's fade-out transition before opening the next one
+    setTimeout(function(){
+        show_modal('amount-paid');
+    }, 300);
+}
+
+function remove_customer_from_sale()
+{
+    CURRENT_CUSTOMER_PHONE = null;
+    CURRENT_CUSTOMER_NAME  = null;
+    update_customer_label();
+    document.querySelector(".js-customer-phone").value = "";
+    document.querySelector(".js-customer-name").value = "";
+    document.querySelector(".js-customer-found").classList.add("d-none");
+    document.querySelector(".js-customer-new").classList.add("d-none");
+}
 
 </script>
 

@@ -39,61 +39,67 @@ if(!empty($raw_data))
 
 		/** CHECKOUT (VENTE NORMALE) **/
 		elseif($OBJ['data_type'] == "checkout")
-		{
-			$data = $OBJ['text'];
-			$receipt_no = get_receipt_no();
-			$user_id = auth("id");
-			$custom_date = isset($OBJ['date']) ? $OBJ['date'] : date("Y-m-d");
-    		$final_date = $custom_date . " " . date("H:i:s"); ;
-			$balance = isset($OBJ['balance']) ? (float)$OBJ['balance'] : 0;
+{
+    $data = $OBJ['text'];
+    $receipt_no = get_receipt_no();
+    $user_id = auth("id");
+    $custom_date = isset($OBJ['date']) ? $OBJ['date'] : date("Y-m-d");
+    $final_date = $custom_date . " " . date("H:i:s");
+    $balance = isset($OBJ['balance']) ? (float)$OBJ['balance'] : 0;
+    $db = new Database();
 
-			 $custom_date = isset($OBJ['date']) ? $OBJ['date'] : date("Y-m-d");
-    	$final_date = $custom_date . " " . date("H:i:s"); 
+    if(!empty($OBJ['order_id']))
+    {
+        $cashier_id = auth("id");
+        $db->query("UPDATE orders SET status = 'Approved', ref_user = :ref_user WHERE id = :id", [
+            'ref_user' => $cashier_id,
+            'id'       => $OBJ['order_id']
+        ]);
+    }
 
-			$db = new Database();
+    $grand_total = 0; // NEW — accumulate as we go
 
-			if(!empty($OBJ['order_id']))
-				{
-				    $cashier_id = auth("id");
-				    $db->query("UPDATE orders SET status = 'Approved', ref_user = :ref_user WHERE id = :id", [
-				        'ref_user' => $cashier_id,
-				        'id'       => $OBJ['order_id']
-				    ]);
-				}
+    foreach ($data as $row) {
+        $query = "select * from products where id = :id limit 1";
+        $check = $db->query($query,['id'=>$row['id']]);
+        if(is_array($check))
+        {
+            $check = $check[0];
+            $qty = $row['qty'];
+            $line_total = $qty * $check['amount'];
+            $grand_total += $line_total; // NEW — add this line's total to the running sum
 
-			foreach ($data as $row) {
-				$query = "select * from products where id = :id limit 1";
-				$check = $db->query($query,['id'=>$row['id']]);
+            $arr = [];
+            $arr['barcode']     = $check['barcode'];
+            $arr['description'] = $check['description'];
+            $arr['amount']      = $check['amount'];
+            $arr['qty']         = $qty;
+            $arr['total']       = $line_total;
+            $arr['receipt_no']  = $receipt_no;
+            $arr['date']        = $final_date;
+            $arr['user_id']     = $user_id;
+            $arr['balance']     = $balance;
+            $query = "insert into sales (barcode,receipt_no,description,qty,amount,total,date,user_id,balance) values (:barcode,:receipt_no,:description,:qty,:amount,:total,:date,:user_id,:balance)";
+            $db->query($query,$arr);
+            $db->query("update products set views = views + 1 where id = :id limit 1",['id'=>$check['id']]);
+            $db->query("UPDATE products SET qty = qty - :qty WHERE id = :id LIMIT 1",['qty'=>$qty, 'id'=>$check['id']]);
+        }
+    }
 
-				if(is_array($check))
-				{
-					$check = $check[0];
-					$qty = $row['qty'];
+    // MOVED here, now that $grand_total is actually populated
+    if(!empty($OBJ['customer_phone']))
+    {
+        $points_earned = $grand_total * 0.05;
+        $db->query(
+            "UPDATE customers SET points = points + :points WHERE phone = :phone",
+            ['points' => $points_earned, 'phone' => $OBJ['customer_phone']]
+        );
+    }
 
-					$arr = [];
-					$arr['barcode']     = $check['barcode'];
-					$arr['description'] = $check['description'];
-					$arr['amount']      = $check['amount'];
-					$arr['qty']         = $qty;
-					$arr['total']       = $qty * $check['amount'];
-					$arr['receipt_no']  = $receipt_no;
-					$arr['date']        = $final_date;
-					$arr['user_id']     = $user_id;
-					$arr['balance']     = $balance; 
-
-					$query = "insert into sales (barcode,receipt_no,description,qty,amount,total,date,user_id,balance) values (:barcode,:receipt_no,:description,:qty,:amount,:total,:date,:user_id,:balance)";
-					$db->query($query,$arr);
-
-					$db->query("update products set views = views + 1 where id = :id limit 1",['id'=>$check['id']]);
-					$db->query("UPDATE products SET qty = qty - :qty WHERE id = :id LIMIT 1",['qty'=>$qty, 'id'=>$check['id']]);
-				}
-			}
-
-			$info['data_type'] = "checkout";
-			$info['data'] = "items saved successfully!";
-			echo json_encode($info);
-
-		}elseif($OBJ['data_type'] == "load_order")
+    $info['data_type'] = "checkout";
+    $info['data'] = "items saved successfully!";
+    echo json_encode($info);
+}elseif($OBJ['data_type'] == "load_order")
 			{
 			    $order_id = $OBJ['order_id'];
 			    $db = new Database();
@@ -116,7 +122,7 @@ if(!empty($raw_data))
 			}
 
 		elseif($OBJ['data_type'] == "save_order")
-{
+	{
     $data = $OBJ['text'];
 
     if(!is_array($data) || count($data) == 0)
@@ -189,6 +195,47 @@ if(!empty($raw_data))
     $info['data_type'] = "save_order";
     $info['data'] = "Commande enregistrée avec succès";
     $info['order_no'] = $order_no;
+    echo json_encode($info);
+    die();
+}elseif($OBJ['data_type'] == "lookup_customer")
+{
+    $phone = trim($OBJ['phone']);
+    $db = new Database();
+
+    $customer = $db->query("SELECT * FROM customers WHERE phone = :phone LIMIT 1", ['phone' => $phone]);
+
+    if(is_array($customer) && count($customer) > 0)
+    {
+        $info['found']  = true;
+        $info['name']   = $customer[0]['name'];
+        $info['points'] = $customer[0]['points'];
+    }else{
+        $info['found'] = false;
+    }
+    echo json_encode($info);
+    die();
+}
+elseif($OBJ['data_type'] == "register_customer")
+{
+    $phone = trim($OBJ['phone']);
+    $name  = trim($OBJ['name']);
+    $db = new Database();
+
+    $existing = $db->query("SELECT id FROM customers WHERE phone = :phone LIMIT 1", ['phone' => $phone]);
+    if(is_array($existing) && count($existing) > 0)
+    {
+        $info['success'] = false;
+        $info['message'] = "This phone number is already registered.";
+        echo json_encode($info);
+        die();
+    }
+
+    $db->query("INSERT INTO customers(phone,name,points) VALUES(:phone,:name,0)", [
+        'phone' => $phone,
+        'name'  => $name
+    ]);
+
+    $info['success'] = true;
     echo json_encode($info);
     die();
 }
