@@ -569,6 +569,32 @@ if($tab == "productshistorique")
         $orders = array_values($orders);
     }
 }
+else if($tab == "stock"){
+    $db = new Database();
+
+    $products = $db->query("
+        SELECT id, description, barcode, qty
+        FROM products
+        ORDER BY description ASC
+    ");
+
+    if(!is_array($products)) $products = [];  
+
+}else if($tab == "stocks"){
+    $db = new Database();
+
+    $stock_received = $db->query("
+        SELECT sr.*, p.description, p.barcode,u.username
+        FROM stock_received sr
+        LEFT JOIN products p ON p.id = sr.product_id
+        LEFT JOIN users u ON u.id = sr.received_by
+        ORDER BY sr.received_at DESC
+        LIMIT 100
+    ");
+    if(!is_array($stock_received)) $stock_received = [];   
+}
+
+
 
 if(Auth::access('supervisor')){
 	require views_path('admin/admin');
