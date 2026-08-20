@@ -583,6 +583,12 @@ else if($tab == "stock"){
 }else if($tab == "stocks"){
     $db = new Database();
 
+    $products = $db->query("
+        SELECT id, description, barcode, qty
+        FROM products
+        ORDER BY description ASC
+    ");
+
     $stock_received = $db->query("
         SELECT sr.*, p.description, p.barcode,u.username
         FROM stock_received sr
