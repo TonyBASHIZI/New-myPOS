@@ -68,6 +68,29 @@
 		    margin-top: -4px;
 		}
 </style>
+	
+	<style>
+	@media print {
+	    body * {
+	        visibility: hidden;
+	    }
+	    #printable-receipt, #printable-receipt * {
+	        visibility: visible;
+	    }
+	    #printable-receipt {
+	        display: block !important;
+	        position: absolute;
+	        left: 0;
+	        top: 0;
+	        width: 320px;
+	        font-family: 'Courier New', monospace;
+	        font-size: 13px;
+	    }
+	}
+	</style>
+
+	
+	<div id="printable-receipt" style="display:none;"></div>
 
 	<div class="modal fade" id="customerModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
@@ -905,14 +928,77 @@ function save_order()
 
 
 	function print_receipt(obj)
-	{
-		var vars = JSON.stringify(obj);
+		{
+		    var TVA_RATE = 0.16;
+		    var subtotal = obj.gtotal / (1 + TVA_RATE);
+		    var tva = obj.gtotal - subtotal;
 
-		RECEIPT_WINDOW = window.open('index.php?pg=print&vars='+vars,'printpage',"width=500px;");
+		    var itemsHtml = '';
+		    obj.data.forEach(function(item){
+		        var line_total = item.qty * item.amount;
+		        itemsHtml += '<tr>'
+		            + '<td>' + item.description + '</td>'
+		            + '<td style="text-align:center;">' + item.qty + '</td>'
+		            + '<td style="text-align:right;">$' + line_total.toFixed(2) + '</td>'
+		            + '</tr>';
+		    });
 
-		setTimeout(close_receipt_window,2000);
-		
-	}
+		    var balanceHtml = '';
+		    if(obj.balance && parseFloat(obj.balance) > 0)
+		    {
+		        balanceHtml = '<div style="text-align:center;font-weight:bold;border:1px solid #000;padding:4px;margin-top:8px;">'
+		            + 'BALANCE DUE: $' + parseFloat(obj.balance).toFixed(2) + '</div>';
+		    }
+
+		    var html = `
+		        <div style="text-align:center;border-bottom:2px dashed #000;padding-bottom:10px;margin-bottom:10px;">
+		            <h2 style="margin:0;">${obj.company}</h2>
+		            <div style="font-size:11px;">${new Date().toLocaleString()}</div>
+		            <div style="font-size:11px;">Receipt #${obj.receipt_no || '-'}</div>
+		        </div>
+
+		        <table style="width:100%;border-collapse:collapse;margin-bottom:10px;">
+		            <thead>
+		                <tr style="border-bottom:1px solid #000;">
+		                    <th style="text-align:left;font-size:11px;">Item</th>
+		                    <th style="text-align:center;font-size:11px;">Qty</th>
+		                    <th style="text-align:right;font-size:11px;">Total</th>
+		                </tr>
+		            </thead>
+		            <tbody>${itemsHtml}</tbody>
+		        </table>
+
+		        <div style="border-top:1px dashed #000;padding-top:6px;font-size:12px;">
+		            <div style="display:flex;justify-content:space-between;">
+		                <span>Subtotal</span><span>$${subtotal.toFixed(2)}</span>
+		            </div>
+		            <div style="display:flex;justify-content:space-between;">
+		                <span>TVA (16%)</span><span>$${tva.toFixed(2)}</span>
+		            </div>
+		            <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:bold;border-top:1px solid #000;margin-top:6px;padding-top:6px;">
+		                <span>TOTAL</span><span>$${parseFloat(obj.gtotal).toFixed(2)}</span>
+		            </div>
+		        </div>
+
+		        <div style="border-top:1px dashed #000;margin-top:8px;padding-top:8px;font-size:12px;">
+		            <div style="display:flex;justify-content:space-between;">
+		                <span>Amount Paid</span><span>$${parseFloat(obj.amount).toFixed(2)}</span>
+		            </div>
+		            <div style="display:flex;justify-content:space-between;">
+		                <span>Change</span><span>$${parseFloat(obj.change).toFixed(2)}</span>
+		            </div>
+		        </div>
+
+		        ${balanceHtml}
+
+		        <div style="text-align:center;margin-top:14px;padding-top:10px;border-top:2px dashed #000;font-size:11px;">
+		            Thank you for your purchase!
+		        </div>
+		    `;
+
+		    document.getElementById('printable-receipt').innerHTML = html;
+		    window.print();
+		}
  
  	function close_receipt_window()
  	{

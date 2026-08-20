@@ -28,7 +28,45 @@ if($tab == "products")
     $total = $productClass->query($query_total);
     
     $total_stock = $total[0]['total_stock'] ?? 0;
-    }else
+    }else if($tab == "inventory"){
+    $db = new Database();
+
+    $date_from = isset($_GET['date_from']) ? trim($_GET['date_from']) : date('Y-m-01'); // default: start of this month
+    $date_to   = isset($_GET['date_to'])   ? trim($_GET['date_to'])   : date('Y-m-d');
+
+    $query = "
+    SELECT 
+        p.id AS product_id,
+        p.barcode,
+        p.description,
+        p.qty AS current_stock,
+        COALESCE(r.total_received, 0) AS qty_received,
+        COALESCE(s.total_sold, 0) AS qty_sold
+    FROM products p
+    LEFT JOIN (
+        SELECT product_id, SUM(qty_received) AS total_received
+        FROM stock_received
+        WHERE DATE(received_at) BETWEEN :date_from1 AND :date_to1
+        GROUP BY product_id
+    ) r ON r.product_id = p.id
+    LEFT JOIN (
+        SELECT barcode, SUM(qty) AS total_sold
+        FROM sales
+        WHERE DATE(date) BETWEEN :date_from2 AND :date_to2
+        GROUP BY barcode
+    ) s ON s.barcode = p.barcode
+    ORDER BY p.description ASC
+    ";
+
+    $inventory = $db->query($query, [
+        'date_from1' => $date_from,
+        'date_to1'   => $date_to,
+        'date_from2' => $date_from,
+        'date_to2'   => $date_to,
+    ]);
+
+   
+}else
     if($tab == "sales")
 {
 	

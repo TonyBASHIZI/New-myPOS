@@ -119,8 +119,127 @@ if(!empty($raw_data))
 			    $info['order_id'] = $order[0]['id'];   // <-- ADD THIS ONE LINE
 			    echo json_encode($info);
 			    die();
-			}
+			}elseif($OBJ['data_type'] == "receive_stock")
+		{
+		    $product_id = $OBJ['product_id'];
+		    $qty        = (float)$OBJ['qty'];
+		    $note       = isset($OBJ['note']) ? trim($OBJ['note']) : '';
+		    $user_id    = auth("id");
+		    $db = new Database();
 
+		    if($qty <= 0)
+		    {
+		        $info['success'] = false;
+		        $info['message'] = "Quantity must be greater than 0";
+		        echo json_encode($info);
+		        die();
+		    }
+
+		    $db->query(
+		        "INSERT INTO stock_received(product_id,qty_received,note,received_by) VALUES(:product_id,:qty,:note,:user_id)",
+		        ['product_id' => $product_id, 'qty' => $qty, 'note' => $note, 'user_id' => $user_id]
+		    );
+
+		    $db->query(
+		        "UPDATE products SET qty = qty + :qty WHERE id = :id",
+		        ['qty' => $qty, 'id' => $product_id]
+		    );
+
+		    $info['success'] = true;
+		    $info['message'] = "Stock received successfully";
+		    echo json_encode($info);
+		    die();
+		}elseif($OBJ['data_type'] == "update_stock_received")
+			{
+			    $id      = $OBJ['id'];
+			    $new_qty = (float)$OBJ['qty'];
+			    $note    = isset($OBJ['note']) ? trim($OBJ['note']) : '';
+
+			    if($new_qty <= 0)
+			    {
+			        $info['success'] = false;
+			        $info['message'] = "Quantity must be greater than 0";
+			        echo json_encode($info);
+			        die();
+			    }
+
+			    $db = new Database();
+			    $existing = $db->query("SELECT * FROM stock_received WHERE id = :id LIMIT 1", ['id' => $id]);
+
+			    if(!is_array($existing) || count($existing) == 0)
+			    {
+			        $info['success'] = false;
+			        $info['message'] = "Entry not found";
+			        echo json_encode($info);
+			        die();
+			    }
+
+			    $existing = $existing[0];
+			    $old_qty = $existing['qty_received'];
+			    $diff = $new_qty - $old_qty; // could be positive or negative
+
+			    $db->beginTransaction();
+			    try {
+			        $db->query(
+			            "UPDATE stock_received SET qty_received = :qty, note = :note WHERE id = :id",
+			            ['qty' => $new_qty, 'note' => $note, 'id' => $id]
+			        );
+
+			        $db->query(
+			            "UPDATE products SET qty = qty + :diff WHERE id = :product_id",
+			            ['diff' => $diff, 'product_id' => $existing['product_id']]
+			        );
+
+			        $db->commit();
+			        $info['success'] = true;
+			        $info['message'] = "Updated successfully";
+			    } catch (Exception $e) {
+			        $db->rollBack();
+			        $info['success'] = false;
+			        $info['message'] = $e->getMessage();
+			    }
+
+			    echo json_encode($info);
+			    die();
+			}
+			elseif($OBJ['data_type'] == "delete_stock_received")
+			{
+			    $id = $OBJ['id'];
+			    $db = new Database();
+
+			    $existing = $db->query("SELECT * FROM stock_received WHERE id = :id LIMIT 1", ['id' => $id]);
+
+			    if(!is_array($existing) || count($existing) == 0)
+			    {
+			        $info['success'] = false;
+			        $info['message'] = "Entry not found";
+			        echo json_encode($info);
+			        die();
+			    }
+
+			    $existing = $existing[0];
+
+			    $db->beginTransaction();
+			    try {
+			        $db->query(
+			            "UPDATE products SET qty = qty - :qty WHERE id = :product_id",
+			            ['qty' => $existing['qty_received'], 'product_id' => $existing['product_id']]
+			        );
+
+			        $db->query("DELETE FROM stock_received WHERE id = :id", ['id' => $id]);
+
+			        $db->commit();
+			        $info['success'] = true;
+			        $info['message'] = "Deleted successfully";
+			    } catch (Exception $e) {
+			        $db->rollBack();
+			        $info['success'] = false;
+			        $info['message'] = $e->getMessage();
+			    }
+
+			    echo json_encode($info);
+			    die();
+			}
 		elseif($OBJ['data_type'] == "save_order")
 	{
     $data = $OBJ['text'];
