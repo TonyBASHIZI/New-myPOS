@@ -27,6 +27,12 @@
                     onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
                     onmouseout="this.style.backgroundColor=''; this.style.color='';"><i class="fa fa-folder"></i> Categories</li>
 				</a>
+				<a href="index.php?pg=admin&tab=cash_closing">
+			  		<li class="list-group-item <?=$tab =='cash_closing'?'active':''?>" class="nav-item"
+                    style="border-radius:8px;"
+                    onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
+                    onmouseout="this.style.backgroundColor=''; this.style.color='';"><i class="fa fa-folder"></i> Closing Cash</li>
+				</a>
 				<a href="index.php?pg=admin&tab=stocks">
 			  		<li class="list-group-item <?=$tab=='stocks'?'active':''?>" class="nav-item"
                     style="border-radius:8px;"
@@ -128,6 +134,9 @@
 			
 			    switch ($tab) {
 
+			    	case 'cash_closing':
+					    require views_path('admin/cash_closing');
+					    break;
 			    	case 'inventory':
 					    require views_path('admin/inventory');
 					    break;

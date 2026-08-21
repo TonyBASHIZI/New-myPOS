@@ -662,6 +662,20 @@ else if($tab == "stock"){
         $totals['total_net']     += $total_net;
     }
 
+}else if($tab == "cash_closing"){
+    $db = new Database();
+    $user_id = auth("id");
+
+    $closings = $db->query("
+        SELECT cc.*, u.username
+        FROM cash_closings cc
+        LEFT JOIN users u ON u.id = cc.user_id
+        ORDER BY cc.closing_date DESC, cc.created_at DESC
+        LIMIT 50
+    ");
+    if(!is_array($closings)) $closings = [];
+
+    
 }
 
 

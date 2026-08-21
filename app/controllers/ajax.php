@@ -46,6 +46,8 @@ if(!empty($raw_data))
     $custom_date = isset($OBJ['date']) ? $OBJ['date'] : date("Y-m-d");
     $final_date = $custom_date . " " . date("H:i:s");
     $balance = isset($OBJ['balance']) ? (float)$OBJ['balance'] : 0;
+    $payment_method = isset($OBJ['payment_method']) ? $OBJ['payment_method'] : 'Cash';
+
     $db = new Database();
 
     if(!empty($OBJ['order_id']))
@@ -79,7 +81,8 @@ if(!empty($raw_data))
             $arr['date']        = $final_date;
             $arr['user_id']     = $user_id;
             $arr['balance']     = $balance;
-            $query = "insert into sales (barcode,receipt_no,description,qty,amount,total,date,user_id,balance) values (:barcode,:receipt_no,:description,:qty,:amount,:total,:date,:user_id,:balance)";
+            $arr['payment_method'] = $payment_method;
+            $query = "insert into sales (barcode,receipt_no,description,qty,amount,total,date,user_id,balance,payment_method) values (:barcode,:receipt_no,:description,:qty,:amount,:total,:date,:user_id,:balance,:payment_method)";
             $db->query($query,$arr);
             $db->query("update products set views = views + 1 where id = :id limit 1",['id'=>$check['id']]);
             $db->query("UPDATE products SET qty = qty - :qty WHERE id = :id LIMIT 1",['qty'=>$qty, 'id'=>$check['id']]);
@@ -504,10 +507,66 @@ elseif($OBJ['data_type'] == "transfer_stock")
     
     echo json_encode($info);
     die();
-}
+}elseif($OBJ['data_type'] == "save_cash_closing")
+	{
+	    $user_id = auth("id");
+	    $closing_date = isset($OBJ['closing_date']) ? $OBJ['closing_date'] : date('Y-m-d');
+	    $counted_cash = (float)$OBJ['counted_cash'];
+	    $note = isset($OBJ['note']) ? trim($OBJ['note']) : '';
+	    $db = new Database();
 
+	    // Block duplicate closing for the same cashier + same date
+	    $existing = $db->query("
+	        SELECT id FROM cash_closings
+	        WHERE user_id = :user_id AND closing_date = :closing_date
+	        LIMIT 1
+	    ", ['user_id' => $user_id, 'closing_date' => $closing_date]);
 
+	    if(is_array($existing) && count($existing) > 0)
+	    {
+	        $info['success'] = false;
+	        $info['message'] = "You've already closed this date. Contact an admin if this needs correction.";
+	        echo json_encode($info);
+	        die();
+	    }
 
+	    $cash_result = $db->query("
+	        SELECT COALESCE(SUM(total),0) AS total
+	        FROM sales
+	        WHERE user_id = :user_id AND DATE(date) = :closing_date AND payment_method = 'Cash'
+	    ", ['user_id' => $user_id, 'closing_date' => $closing_date]);
+	    $expected_cash = $cash_result[0]['total'];
 
+	    $mobile_result = $db->query("
+	        SELECT COALESCE(SUM(total),0) AS total
+	        FROM sales
+	        WHERE user_id = :user_id AND DATE(date) = :closing_date AND payment_method = 'Mobile Money'
+	    ", ['user_id' => $user_id, 'closing_date' => $closing_date]);
+	    $expected_mobile = $mobile_result[0]['total'];
+
+	    $difference = $counted_cash - $expected_cash;
+
+	    $db->query("
+	        INSERT INTO cash_closings(user_id, closing_date, expected_cash, expected_mobile, counted_cash, difference, note)
+	        VALUES(:user_id, :closing_date, :expected_cash, :expected_mobile, :counted_cash, :difference, :note)
+	    ", [
+	        'user_id' => $user_id,
+	        'closing_date' => $closing_date,
+	        'expected_cash' => $expected_cash,
+	        'expected_mobile' => $expected_mobile,
+	        'counted_cash' => $counted_cash,
+	        'difference' => $difference,
+	        'note' => $note
+	    ]);
+
+	    $info['success'] = true;
+	    $info['expected_cash'] = $expected_cash;
+	    $info['difference'] = $difference;
+	    echo json_encode($info);
+	    die();
 	}
+
+
+
+  }
 }

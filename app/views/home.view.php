@@ -230,6 +230,12 @@
             </div>
             <div class="checkout-tva-note">TVA included in total</div>
 
+            <label class="form-label small text-muted mt-3 mb-1">Payment Method</label>
+			<select class="form-control js-payment-method">
+			    <option value="Cash">Cash</option>
+			    <option value="Mobile Money">Mobile Money</option>
+			</select>
+
             <div class="checkout-total-row">
                 <span>Total Due</span>
                 <span class="js-gtotal-display">$0.00</span>
@@ -849,15 +855,18 @@ function validate_amount_paid(e) {
     }
 
     // Envoi des données au PHP (Ajout de balance)
-    send_data({
-    data_type: "checkout",
-    text: ITEMS_NEW,
-    amount_paid: amount,
-    balance: current_balance,
-    date: sale_date,
-    order_id: CURRENT_ORDER_ID,
-    customer_phone: CURRENT_CUSTOMER_PHONE
-});
+    var payment_method = document.querySelector(".js-payment-method").value;
+
+	send_data({
+	    data_type: "checkout",
+	    text: ITEMS_NEW,
+	    amount_paid: amount,
+	    balance: current_balance,
+	    date: sale_date,
+	    order_id: CURRENT_ORDER_ID,
+	    customer_phone: CURRENT_CUSTOMER_PHONE,
+	    payment_method: payment_method
+	});
 
   // REMOVE this whole save_order() block from inside validate_amount_paid()
 
