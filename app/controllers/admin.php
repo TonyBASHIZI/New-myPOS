@@ -598,6 +598,70 @@ else if($tab == "stock"){
         LIMIT 100
     ");
     if(!is_array($stock_received)) $stock_received = [];   
+    if(!is_array($products)) $products = [];  
+
+}else if($tab == "inventory"){
+    $db = new Database();
+
+    $date_from = isset($_GET['date_from']) ? trim($_GET['date_from']) : date('Y-m-01');
+    $date_to   = isset($_GET['date_to'])   ? trim($_GET['date_to'])   : date('Y-m-d');
+
+    // 1. All products
+    $products = $db->query("SELECT id, barcode, description, amount, qty FROM products ORDER BY description ASC");
+    if(!is_array($products)) $products = [];
+
+    // 2. Received totals per product, for this date range
+    $received_rows = $db->query("
+        SELECT product_id, SUM(qty_received) AS total_received
+        FROM stock_received
+        WHERE DATE(received_at) BETWEEN :date_from AND :date_to
+        GROUP BY product_id
+    ", ['date_from' => $date_from, 'date_to' => $date_to]);
+    if(!is_array($received_rows)) $received_rows = [];
+
+    // 3. Sold totals per barcode, for this date range
+    $sold_rows = $db->query("
+        SELECT barcode, SUM(qty) AS total_sold
+        FROM sales
+        WHERE DATE(date) BETWEEN :date_from AND :date_to
+        GROUP BY barcode
+    ", ['date_from' => $date_from, 'date_to' => $date_to]);
+    if(!is_array($sold_rows)) $sold_rows = [];
+
+    // Index received/sold by key for fast lookup while merging
+    $received_map = [];
+    foreach($received_rows as $r) $received_map[$r['product_id']] = $r['total_received'];
+
+    $sold_map = [];
+    foreach($sold_rows as $s) $sold_map[$s['barcode']] = $s['total_sold'];
+
+    // Merge into final inventory array
+    $inventory = [];
+    $totals = ['qty_received' => 0, 'qty_sold' => 0, 'current_stock' => 0, 'total_net' => 0];
+
+    foreach($products as $p)
+    {
+        $qty_received = isset($received_map[$p['id']]) ? $received_map[$p['id']] : 0;
+        $qty_sold     = isset($sold_map[$p['barcode']]) ? $sold_map[$p['barcode']] : 0;
+        $total_net    = $p['qty'] * $p['amount'];
+
+        $inventory[] = [
+            'product_id'    => $p['id'],
+            'barcode'       => $p['barcode'],
+            'description'   => $p['description'],
+            'amount'        => $p['amount'],
+            'current_stock' => $p['qty'],
+            'qty_received'  => $qty_received,
+            'qty_sold'      => $qty_sold,
+            'total_net'     => $total_net,
+        ];
+
+        $totals['qty_received']  += $qty_received;
+        $totals['qty_sold']      += $qty_sold;
+        $totals['current_stock'] += $p['qty'];
+        $totals['total_net']     += $total_net;
+    }
+
 }
 
 

@@ -63,17 +63,23 @@
                 </tr>
                 
             <?php foreach ($stock_received as $all):?>
-                <tr>
-                    <td><?=esc($all['description'])?>
-                        
-                    </td>
+               <tr>
+                    <td><?=esc($all['description'])?></td>
                     <td><?=esc($all['barcode'])?></td>
                     <td><?=esc($all['qty_received'])?></td>
                     <td><?=esc($all['note'])?></td>
-                     <td><?=esc($all['username'])?></td>
-                      <td><?=esc($all['received_at'])?></td>
-                      <td></td>
-                
+                    <td><?=esc($all['username'])?></td>
+                    <td><?=esc($all['received_at'])?></td>
+                    <td> 
+                    
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="open_edit_stock('<?=$all['id']?>', <?=htmlspecialchars(json_encode($all['description'] ?: ''), ENT_QUOTES)?>, '<?=$all['qty_received']?>', <?=htmlspecialchars(json_encode($all['note'] ?: ''), ENT_QUOTES)?>)">
+                            <i class="fa fa-pen"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="delete_stock_received('<?=$all['id']?>')">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                    
+                    </td>
                 </tr>
 
                  <?php endforeach;?>
@@ -86,19 +92,26 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" style="border-radius:12px;">
       <div class="modal-header">
-        <h5 class="modal-title">Edit Stock Entry</h5>
+        <h5 class="modal-title"><i class="fa fa-pen me-2"></i>Edit Stock Entry</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <input type="hidden" class="js-edit-id">
+
+        <label class="form-label small text-muted">Product</label>
+        <input type="text" class="form-control mb-3 js-edit-product-label" disabled>
+
         <label class="form-label small text-muted">Quantity</label>
         <input type="number" step="0.01" class="form-control mb-3 js-edit-qty">
+
         <label class="form-label small text-muted">Note</label>
         <input type="text" class="form-control js-edit-note">
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-primary" onclick="save_stock_edit()">Save Changes</button>
+        <button type="button" class="btn btn-primary" onclick="save_stock_edit()">
+            <i class="fa fa-save me-1"></i>Save Changes
+        </button>
       </div>
     </div>
   </div>
@@ -202,9 +215,10 @@ function render_stock_received(rows)
     tbody.innerHTML = html;
 }
 
-function open_edit_stock(id, qty, note)
+function open_edit_stock(id, product_label, qty, note)
 {
     document.querySelector(".js-edit-id").value = id;
+    document.querySelector(".js-edit-product-label").value = product_label;
     document.querySelector(".js-edit-qty").value = qty;
     document.querySelector(".js-edit-note").value = note;
 
@@ -233,7 +247,7 @@ function save_stock_edit()
             {
                 show_toast("success", "Updated", obj.message);
                 bootstrap.Modal.getInstance(document.getElementById('editStockModal')).hide();
-                load_stock_received();
+                location.reload(); // simplest way to refresh both history + product qty display
             }else{
                 show_toast("error", "Failed", obj.message);
             }
@@ -260,7 +274,7 @@ function delete_stock_received(id)
                 if(obj.success)
                 {
                     show_toast("success", "Deleted", obj.message);
-                    load_stock_received();
+                    location.reload();
                 }else{
                     show_toast("error", "Failed", obj.message);
                 }
@@ -269,45 +283,6 @@ function delete_stock_received(id)
         ajax.open('post', 'index.php?pg=ajax', true);
         ajax.send(JSON.stringify({ data_type: "delete_stock_received", id: id }));
     });
-}
-
-// After a successful "+ Add", also refresh the history list — add this call
-// inside receive_stock()'s success branch, right after load_stock_received()
-// doesn't exist yet there — add it now:
-
-
-function render_stock_received(rows)
-{
-    var tbody = document.querySelector(".js-stock-received-list");
-
-    if(!rows || rows.length == 0)
-    {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No stock received yet</td></tr>';
-        return;
-    }
-
-    var html = "";
-    rows.forEach(function(row){
-        html += `
-            <tr>
-                <td>${row.description || '-'}</td>
-                <td class="text-muted">${row.barcode || '-'}</td>
-                <td class="fw-bold">${row.qty_received}</td>
-                <td>${row.note || '-'}</td>
-                <td>${row.username || 'Unknown'}</td>
-                <td class="text-muted">${row.received_at}</td>
-                <td>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="open_edit_stock('${row.id}','${row.qty_received}', ${JSON.stringify(row.note || '')})">
-                        <i class="fa fa-pen"></i>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="delete_stock_received('${row.id}')">
-                        <i class="fa fa-trash"></i>
-                    </button>
-                </td>
-            </tr>
-        `;
-    });
-    tbody.innerHTML = html;
 }
 var TOAST_TIMEOUT = null;
 
@@ -385,7 +360,6 @@ function receive_stock()
     var product_id = document.querySelector(".js-receive-product").value;
     var qty        = document.querySelector(".js-receive-qty").value;
     var note       = document.querySelector(".js-receive-note").value.trim();
-
     if(product_id == "")
     {
         show_toast("error", "Missing product", "Please select a product.");
@@ -396,7 +370,6 @@ function receive_stock()
         show_toast("error", "Invalid quantity", "Enter a quantity greater than 0.");
         return;
     }
-
     var ajax = new XMLHttpRequest();
     ajax.addEventListener('readystatechange', function(){
         if(ajax.readyState == 4 && ajax.status == 200)
@@ -405,10 +378,7 @@ function receive_stock()
             if(obj.success)
             {
                 show_toast("success", "Stock Received", obj.message);
-                document.querySelector(".js-receive-product").value = "";
-                document.querySelector(".js-receive-qty").value = "";
-                document.querySelector(".js-receive-note").value = "";
-                load_stock_received();
+                location.reload();
             }else{
                 show_toast("error", "Failed", obj.message);
             }
@@ -423,28 +393,16 @@ function receive_stock()
     }));
 }
 
-function open_edit_stock(id, qty, note)
-{
-    document.querySelector(".js-edit-id").value = id;
-    document.querySelector(".js-edit-qty").value = qty;
-    document.querySelector(".js-edit-note").value = note;
-
-    var modal = new bootstrap.Modal(document.getElementById('editStockModal'));
-    modal.show();
-}
-
 function save_stock_edit()
 {
     var id   = document.querySelector(".js-edit-id").value;
     var qty  = document.querySelector(".js-edit-qty").value;
     var note = document.querySelector(".js-edit-note").value.trim();
-
     if(qty == "" || parseFloat(qty) <= 0)
     {
         show_toast("error", "Invalid quantity", "Enter a quantity greater than 0.");
         return;
     }
-
     var ajax = new XMLHttpRequest();
     ajax.addEventListener('readystatechange', function(){
         if(ajax.readyState == 4 && ajax.status == 200)
@@ -454,7 +412,7 @@ function save_stock_edit()
             {
                 show_toast("success", "Updated", obj.message);
                 bootstrap.Modal.getInstance(document.getElementById('editStockModal')).hide();
-                load_stock_received();
+                location.reload();
             }else{
                 show_toast("error", "Failed", obj.message);
             }
@@ -472,7 +430,6 @@ function save_stock_edit()
 function delete_stock_received(id)
 {
     show_confirm("Delete this stock entry? This will also adjust product stock accordingly.", function(){
-
         var ajax = new XMLHttpRequest();
         ajax.addEventListener('readystatechange', function(){
             if(ajax.readyState == 4 && ajax.status == 200)
@@ -481,7 +438,7 @@ function delete_stock_received(id)
                 if(obj.success)
                 {
                     show_toast("success", "Deleted", obj.message);
-                    load_stock_received();
+                    location.reload();
                 }else{
                     show_toast("error", "Failed", obj.message);
                 }
@@ -491,9 +448,8 @@ function delete_stock_received(id)
         ajax.send(JSON.stringify({ data_type: "delete_stock_received", id: id }));
     });
 }
-
-load_stock_received(); // initial load on page open
 </script>
+
 <script>
     $(document).ready(function(){
     $('.js-receive-product').select2({

@@ -30,7 +30,7 @@
 
         <!-- CHAMP 3 : DETAILS / NOTES -->
         <div class="mb-4">
-            <label class="form-label small fw-bold">Note / Justification</label>
+            <label class="form-label small fw-bold">Notes / Justification</label>
             <textarea id="js-note-boss" class="form-control" rows="2" placeholder="Ex: Remise accordée ou versement partiel"></textarea>
         </div>
 
@@ -178,24 +178,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
  
- <script>
-     function hide_modal(e,modal)
-{
-    if(e == true || e.target.getAttribute("role") == "close-button")
-    {
-        if(modal == "amount-paid"){
-            document.querySelector(".js-amount-paid-modal").classList.add("hide");
-        }else
-        if(modal == "change"){
-            document.querySelector(".js-change-modal").classList.add("hide");
-        }else
-        if(modal == "confirm"){
-            document.querySelector(".js-confirm-modal").classList.add("hide");
-            CONFIRM_CALLBACK = null; // cancel clears the pending action
-        }
-    }
-}
- </script>
 
 <script>
 

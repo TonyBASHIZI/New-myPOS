@@ -39,6 +39,12 @@
                     onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
                     onmouseout="this.style.backgroundColor=''; this.style.color='';"><i class="fa fa-box"></i> Products</li>
 				</a>
+					<a href="index.php?pg=admin&tab=inventory">
+			  		<li class="list-group-item <?=$tab=='inventory'?'active':''?>" class="nav-item"
+                    style="border-radius:8px;"
+                    onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
+                    onmouseout="this.style.backgroundColor=''; this.style.color='';"><i class="fa fa-box"></i> Inventory</li>
+				</a>
 				<!--<a href="index.php?pg=admin&tab=productshistorique">-->
 			 <!-- 		<li class="list-group-item <?=$tab=='productshistorique'?'active':''?>"><i class="fa fa-box"></i> Log Products</li>-->
 				<!--</a>-->
@@ -122,6 +128,9 @@
 			
 			    switch ($tab) {
 
+			    	case 'inventory':
+					    require views_path('admin/inventory');
+					    break;
 			    	case 'stocks':
 						// code...
 						require views_path('admin/stocks');
