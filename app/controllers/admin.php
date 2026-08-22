@@ -338,18 +338,6 @@ if($tab == "dashboard")
 	$stocklastlot = $db->query($query);
 	$totalLastlot = $stocklastlot[0]['netTotallot'];
 
-	$pending_orders = $db->query("SELECT COUNT(*) as total, COALESCE(SUM(total),0) as amount FROM orders WHERE status = 'Pending'");
-	$totalPendingOrders = is_array($pending_orders) ? $pending_orders[0]['total'] : 0;
-	$amountPendingOrders = is_array($pending_orders) ? $pending_orders[0]['amount'] : 0;
-
-	$approved_orders = $db->query("SELECT COUNT(*) as total, COALESCE(SUM(total),0) as amount FROM orders WHERE status = 'Approved'");
-	$totalApprovedOrders = is_array($approved_orders) ? $approved_orders[0]['total'] : 0;
-	$amountApprovedOrders = is_array($approved_orders) ? $approved_orders[0]['amount'] : 0;
-
-	$today_orders = $db->query("SELECT COUNT(*) as total, COALESCE(SUM(total),0) as amount FROM orders WHERE DATE(created_at) = CURDATE()");
-	$totalTodayOrders = is_array($today_orders) ? $today_orders[0]['total'] : 0;
-	$amountTodayOrders = is_array($today_orders) ? $today_orders[0]['amount'] : 0;
-	
 	
 }else
 if($tab =="categories")
