@@ -21,11 +21,11 @@
                     onmouseout="this.style.backgroundColor=''; this.style.color='';"><i class="fa fa-users" class="nav-item"></i> Users</li>
 				</a>
 				
-				<a href="index.php?pg=admin&tab=categories">
-			  		<li class="list-group-item <?=$tab =='categories'?'active':''?>" class="nav-item"
+				<a href="index.php?pg=admin&tab=print_labels">
+			  		<li class="list-group-item <?=$tab =='print_labels'?'active':''?>" class="nav-item"
                     style="border-radius:8px;"
                     onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
-                    onmouseout="this.style.backgroundColor=''; this.style.color='';"><i class="fa fa-folder"></i> Categories</li>
+                    onmouseout="this.style.backgroundColor=''; this.style.color='';"><i class="fa fa-folder"></i> Print labels</li>
 				</a>
 				<a href="index.php?pg=admin&tab=cash_closing">
 			  		<li class="list-group-item <?=$tab =='cash_closing'?'active':''?>" class="nav-item"
@@ -134,6 +134,9 @@
 			
 			    switch ($tab) {
 
+			    	case 'print_labels':
+					    require views_path('admin/print_labels');
+					    break;
 			    	case 'cash_closing':
 					    require views_path('admin/cash_closing');
 					    break;

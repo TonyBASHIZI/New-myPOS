@@ -676,6 +676,14 @@ else if($tab == "stock"){
     if(!is_array($closings)) $closings = [];
 
     
+}else if($tab == "print_labels"){
+	
+    $db = new Database();
+
+    $products = $db->query("SELECT id, description, barcode, amount FROM products ORDER BY description ASC");
+    if(!is_array($products)) $products = [];
+
+    
 }
 
 
