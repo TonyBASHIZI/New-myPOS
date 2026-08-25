@@ -236,6 +236,21 @@
 			    <option value="Mobile Money">Mobile Money</option>
 			</select>
 
+			<div class="mt-3 p-3" style="background:#f8f9fa;border-radius:8px;" id="pointsPaySection" style="display:none;">
+				    <div class="d-flex justify-content-between align-items-center mb-2">
+				        <span class="small fw-bold"><i class="fa fa-star text-warning"></i> Pay with Points</span>
+				        <span class="small text-muted">Available: <b class="js-available-points">0</b> pts</span>
+				    </div>
+				    <div class="input-group input-group-sm mb-2">
+				        <span class="input-group-text">Points to use</span>
+				        <input type="number" class="form-control js-points-to-use" min="0" placeholder="0">
+				        <span class="input-group-text js-points-value-preview">= $0.00</span>
+				    </div>
+				    <button type="button" class="btn btn-sm btn-warning w-100" onclick="request_points_otp()">
+				        <i class="fa fa-key"></i> Send OTP to Confirm
+				    </button>
+				</div>
+
             <div class="checkout-total-row">
                 <span>Total Due</span>
                 <span class="js-gtotal-display">$0.00</span>
@@ -261,6 +276,25 @@
     </div>
 </div>
 	<!--end enter amount modal-->
+
+	<div class="modal fade" id="otpModal" tabindex="-1">
+		  <div class="modal-dialog modal-dialog-centered modal-sm">
+		    <div class="modal-content" style="border-radius:12px;">
+		      <div class="modal-header">
+		        <h5 class="modal-title"><i class="fa fa-key me-2"></i>Enter OTP</h5>
+		        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+		      </div>
+		      <div class="modal-body">
+		        <p class="small text-muted mb-2">Points: <b class="js-otp-points"></b> = <b class="js-otp-amount"></b></p>
+		        <input type="text" class="form-control text-center" style="letter-spacing:4px;font-size:20px;" maxlength="6" id="otpCodeInput" placeholder="------">
+		      </div>
+		      <div class="modal-footer">
+		        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+		        <button type="button" class="btn btn-primary" onclick="verify_points_otp()">Verify & Apply</button>
+		      </div>
+		    </div>
+		  </div>
+		</div>
 
 	<!--change modal-->
 	<div role="close-button" onclick="hide_modal(event,'change')" class="js-change-modal hide" style="animation: appear .5s ease;background-color: #000000bb; width: 100%;height: 100%;position: fixed;left:0px;top:0px;z-index: 1050;">
@@ -763,34 +797,29 @@ if (data.qty <= 5) {
 		function show_modal(modal)
 	{
 	    if(modal == "amount-paid"){
+		    if(ITEMS.length == 0){
+		        show_toast("error", "Empty cart", "Please add products first.");
+		        return;
+		    }
+		    var mydiv = document.querySelector(".js-amount-paid-modal");
+		    mydiv.classList.remove("hide");
 
-	        if(ITEMS.length == 0){
-	            show_toast("error", "Empty cart", "Please add products first.");
-	            return;
-	        }
-	        var mydiv = document.querySelector(".js-amount-paid-modal");
-	        mydiv.classList.remove("hide");
+		    var amount_paid_input = mydiv.querySelector(".js-amount-paid-input");
+		    amount_paid_input.value = GTOTAL.toFixed(2);
 
-	        var amount_paid_input = mydiv.querySelector(".js-amount-paid-input");
-	        amount_paid_input.value = GTOTAL.toFixed(2);
+		    var TVA_RATE = 0.16;
+		    var subtotal = GTOTAL / (1 + TVA_RATE);
+		    var tva_amount = GTOTAL - subtotal;
 
-	        // NEW — populate subtotal/TVA/total display
-	        var TVA_RATE = 0.16; // adjust to your actual local rate
-	        var subtotal = GTOTAL / (1 + TVA_RATE);
-	        var tva_amount = GTOTAL - subtotal;
+		    mydiv.querySelector(".js-checkout-subtotal").innerHTML = "$" + subtotal.toFixed(2);
+		    mydiv.querySelector(".js-checkout-tva").innerHTML = "$" + tva_amount.toFixed(2);
+		    mydiv.querySelector(".js-gtotal-display").innerHTML = "$" + GTOTAL.toFixed(2);
 
-	        mydiv.querySelector(".js-checkout-subtotal").innerHTML = "$" + subtotal.toFixed(2);
-	        mydiv.querySelector(".js-checkout-tva").innerHTML = "$" + tva_amount.toFixed(2);
-	        mydiv.querySelector(".js-gtotal-display").innerHTML = "$" + GTOTAL.toFixed(2);
-
-	        amount_paid_input.focus();
-	    }else
-	    if(modal == "change"){
-	        var mydiv = document.querySelector(".js-change-modal");
-	        mydiv.classList.remove("hide");
-	        mydiv.querySelector(".js-change-input").innerHTML = CHANGE;
-	        mydiv.querySelector(".js-btn-close-change").focus();
-	    }
+		    
+		    refresh_points_section();
+		    
+		    amount_paid_input.focus();
+		}
 	}
 		
 	function hide_modal(e,modal)
@@ -865,7 +894,9 @@ function validate_amount_paid(e) {
 	    date: sale_date,
 	    order_id: CURRENT_ORDER_ID,
 	    customer_phone: CURRENT_CUSTOMER_PHONE,
-	    payment_method: payment_method
+	    payment_method: payment_method,
+	    points_used: PENDING_POINTS,
+    	points_amount: POINTS_APPLIED_AMOUNT
 	});
 
   // REMOVE this whole save_order() block from inside validate_amount_paid()
@@ -1160,6 +1191,144 @@ function remove_customer_from_sale()
     document.querySelector(".js-customer-found").classList.add("d-none");
     document.querySelector(".js-customer-new").classList.add("d-none");
 }
+
+// call this whenever the checkout modal opens (inside show_modal('amount-paid'))
+function refresh_points_section()
+{
+    var section = document.getElementById('pointsPaySection');
+
+    if(CURRENT_CUSTOMER_PHONE)
+    {
+        section.style.display = 'block';
+
+        var ajax = new XMLHttpRequest();
+        ajax.addEventListener('readystatechange', function(){
+            if(ajax.readyState == 4 && ajax.status == 200)
+            {
+                var obj = JSON.parse(ajax.responseText);
+                var points = obj.found ? parseFloat(obj.points) : 0;
+
+                document.querySelector(".js-available-points").innerText = points.toFixed(2);
+
+                var pointsInput = document.querySelector(".js-points-to-use");
+                pointsInput.value = points;
+
+                // trigger the $ preview update manually, since setting .value doesn't fire 'input'
+                var dollarValue = points / 50;
+                document.querySelector(".js-points-value-preview").innerText = "= $" + dollarValue.toFixed(2);
+
+
+            }
+        });
+        ajax.open('post', 'index.php?pg=ajax', true);
+        ajax.send(JSON.stringify({ data_type: "lookup_customer", phone: CURRENT_CUSTOMER_PHONE }));
+    }else{
+        section.style.display = 'none';
+    }
+}
+
+document.querySelector(".js-points-to-use").addEventListener('input', function(){
+    var points = parseFloat(this.value) || 0;
+    var dollarValue = points / 50; // 50 points = $1
+    document.querySelector(".js-points-value-preview").innerText = "= $" + dollarValue.toFixed(2);
+});
+
+var PENDING_POINTS = 0;
+var PENDING_POINTS_AMOUNT = 0;
+
+function show_otp_input_modal(points, amount)
+{
+    PENDING_POINTS = points;
+    PENDING_POINTS_AMOUNT = amount;
+    document.querySelector(".js-otp-points").innerText = points;
+    document.querySelector(".js-otp-amount").innerText = "$" + parseFloat(amount).toFixed(2);
+    document.getElementById('otpCodeInput').value = "";
+
+    var modal = new bootstrap.Modal(document.getElementById('otpModal'));
+    modal.show();
+}
+
+var POINTS_APPLIED_AMOUNT = 0; // this reduces what's owed in cash at checkout
+
+function verify_points_otp()
+{
+    var code = document.getElementById('otpCodeInput').value.trim();
+
+    if(code.length != 6)
+    {
+        show_toast("error", "Invalid code", "Enter the 6-digit code.");
+        return;
+    }
+
+    var ajax = new XMLHttpRequest();
+    ajax.addEventListener('readystatechange', function(){
+        if(ajax.readyState == 4 && ajax.status == 200)
+        {
+            var obj = JSON.parse(ajax.responseText);
+            if(obj.success)
+            {
+                POINTS_APPLIED_AMOUNT = obj.amount_covered;
+                show_toast("success", "Points Applied", "$" + parseFloat(obj.amount_covered).toFixed(2) + " covered by points.");
+                bootstrap.Modal.getInstance(document.getElementById('otpModal')).hide();
+
+                // reduce the amount-paid input by the covered amount, so cashier only collects the remainder
+                var remaining = Math.max(0, GTOTAL - POINTS_APPLIED_AMOUNT);
+                document.querySelector(".js-amount-paid-input").value = remaining.toFixed(2);
+            }else{
+                show_toast("error", "Verification Failed", obj.message);
+            }
+        }
+    });
+    ajax.open('post', 'index.php?pg=ajax', true);
+    ajax.send(JSON.stringify({
+        data_type: "verify_points_otp",
+        phone: CURRENT_CUSTOMER_PHONE,
+        code: code
+    }));
+}
+
+
+
+var POINTS_OTP_PENDING = false;
+
+function request_points_otp()
+{
+    var points = parseFloat(document.querySelector(".js-points-to-use").value) || 0;
+
+    if(!CURRENT_CUSTOMER_PHONE)
+    {
+        show_toast("error", "No customer", "Attach a customer to the sale first.");
+        return;
+    }
+    if(points <= 0)
+    {
+        show_toast("error", "Invalid amount", "Enter how many points to use.");
+        return;
+    }
+
+    var ajax = new XMLHttpRequest();
+    ajax.addEventListener('readystatechange', function(){
+        if(ajax.readyState == 4 && ajax.status == 200)
+        {
+            var obj = JSON.parse(ajax.responseText);
+            if(obj.success)
+            {
+                POINTS_OTP_PENDING = true;
+                show_toast("success", "OTP Sent", "Ask the customer for the code sent to their phone.");
+                show_otp_input_modal(points, obj.amount_covered);
+            }else{
+                show_toast("error", "Failed", obj.message);
+            }
+        }
+    });
+    ajax.open('post', 'index.php?pg=ajax', true);
+    ajax.send(JSON.stringify({
+        data_type: "request_points_otp",
+        phone: CURRENT_CUSTOMER_PHONE,
+        points: points
+    }));
+}
+
 
 </script>
 

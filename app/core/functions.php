@@ -1,5 +1,23 @@
 <?php 
 
+function send_sms($phone, $message)
+{
+    $url = "https://api.keccel.com/sms/v1/message.asp?token=K54GTBD3RWUTCUK&from=BIAKUUZA&to="
+         . urlencode($phone) . "&message=" . urlencode($message);
+
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    $response = curl_exec($ch);
+
+    if($response === false)
+    {
+        $GLOBALS['sms_curl_error'] = curl_error($ch); // TEMP - expose the actual error
+    }
+
+    curl_close($ch);
+    return $response;
+}
 
 function show($data)
 {

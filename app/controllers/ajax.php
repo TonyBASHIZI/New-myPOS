@@ -58,7 +58,13 @@ if(!empty($raw_data))
             'id'       => $OBJ['order_id']
         ]);
     }
-
+    if(!empty($OBJ['points_used']) && $OBJ['points_used'] > 0)
+		{
+		    $db->query(
+		        "UPDATE customers SET points = points - :points WHERE phone = :phone",
+		        ['points' => $OBJ['points_used'], 'phone' => $OBJ['customer_phone']]
+		    );
+		}
     $grand_total = 0; // NEW — accumulate as we go
 
     foreach ($data as $row) {
@@ -564,9 +570,86 @@ elseif($OBJ['data_type'] == "transfer_stock")
 	    $info['difference'] = $difference;
 	    echo json_encode($info);
 	    die();
-	}
+	}elseif($OBJ['data_type'] == "request_points_otp")
+{
+	    $phone  = trim($OBJ['phone']);
+	    $points = (float)$OBJ['points'];
+	    $db = new Database();
+
+	    $customer = $db->query("SELECT * FROM customers WHERE phone = :phone LIMIT 1", ['phone' => $phone]);
+	    if(!is_array($customer) || count($customer) == 0)
+	    {
+	        $info['success'] = false;
+	        $info['message'] = "Customer not found";
+	        echo json_encode($info);
+	        die();
+	    }
+	    $customer = $customer[0];
+
+	    if($points > $customer['points'])
+	    {
+	        $info['success'] = false;
+	        $info['message'] = "Not enough points. Available: " . $customer['points'];
+	        echo json_encode($info);
+	        die();
+	    }
+
+	    $amount_covered = $points / 50; // 50 points = $1
+	    $otp_code = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
+	    $expires_at = date('Y-m-d H:i:s', strtotime('+5 minutes'));
+
+	    $db->query("
+	        INSERT INTO points_otp(phone, otp_code, points_to_use, amount_covered, verified, expires_at)
+	        VALUES(:phone, :otp_code, :points, :amount, 0, :expires_at)
+	    ", [
+	        'phone' => $phone,
+	        'otp_code' => $otp_code,
+	        'points' => $points,
+	        'amount' => $amount_covered,
+	        'expires_at' => $expires_at
+	    ]);
 
 
 
+	   $sms_response = send_sms("243824218304", "Your verification code is: " . $otp_code . ". Valid for 5 minutes.");
+
+	    
+	    $info['success'] = true;
+	    $info['amount_covered'] = $amount_covered;
+	    echo json_encode($info);
+	    die();
+
+	}elseif($OBJ['data_type'] == "verify_points_otp")
+{
+    $phone = trim($OBJ['phone']);
+    $code  = trim($OBJ['code']);
+    $db = new Database();
+
+    $otp = $db->query("
+        SELECT * FROM points_otp
+        WHERE phone = :phone AND otp_code = :code AND verified = 0 AND expires_at >= NOW()
+        ORDER BY id DESC LIMIT 1
+    ", ['phone' => $phone, 'code' => $code]);
+
+    if(!is_array($otp) || count($otp) == 0)
+    {
+        $info['success'] = false;
+        $info['message'] = "Invalid or expired code";
+        echo json_encode($info);
+        die();
+    }
+    $otp = $otp[0];
+
+    $db->query("UPDATE points_otp SET verified = 1 WHERE id = :id", ['id' => $otp['id']]);
+
+    $info['success'] = true;
+    $info['amount_covered'] = $otp['amount_covered'];
+    $info['points_to_use'] = $otp['points_to_use'];
+    echo json_encode($info);
+    die();
+}
+
+
+ 
   }
 }
