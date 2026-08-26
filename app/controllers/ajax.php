@@ -65,7 +65,26 @@ if(!empty($raw_data))
 		        ['points' => $OBJ['points_used'], 'phone' => $OBJ['customer_phone']]
 		    );
 		}
+ 	
+ 	$customer_info = null;
+	if(!empty($OBJ['customer_phone']))
+	{
+	    $customer_check = $db->query("SELECT name, phone, points FROM customers WHERE phone = :phone LIMIT 1", ['phone' => $OBJ['customer_phone']]);
+	    if(is_array($customer_check) && count($customer_check) > 0)
+	    {
+	        $customer_info = $customer_check[0];
+	    }
+	}
+
+	$info['data_type'] = "checkout";
+	$info['data'] = "items saved successfully!";
+	$info['customer'] = $customer_info; // NEW — null if no customer attached
+
+
     $grand_total = 0; // NEW — accumulate as we go
+
+    $points_amount = isset($OBJ['points_amount']) ? (float)$OBJ['points_amount'] : 0;
+	$first_item = true;
 
     foreach ($data as $row) {
         $query = "select * from products where id = :id limit 1";
@@ -572,54 +591,61 @@ elseif($OBJ['data_type'] == "transfer_stock")
 	    die();
 	}elseif($OBJ['data_type'] == "request_points_otp")
 {
-	    $phone  = trim($OBJ['phone']);
-	    $points = (float)$OBJ['points'];
-	    $db = new Database();
+    $phone  = trim($OBJ['phone']);
+    $points = (float)$OBJ['points'];
+    $db = new Database();
+    $customer = $db->query("SELECT * FROM customers WHERE phone = :phone LIMIT 1", ['phone' => $phone]);
+    if(!is_array($customer) || count($customer) == 0)
+    {
+        $info['success'] = false;
+        $info['message'] = "Customer not found";
+        echo json_encode($info);
+        die();
+    }
+    $customer = $customer[0];
+    if($points > $customer['points'])
+    {
+        $info['success'] = false;
+        $info['message'] = "Not enough points. Available: " . $customer['points'];
+        echo json_encode($info);
+        die();
+    }
+    $amount_covered = $points / 50;
+    $otp_code = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
+    $expires_at = date('Y-m-d H:i:s', strtotime('+5 minutes'));
+    $db->query("
+        INSERT INTO points_otp(phone, otp_code, points_to_use, amount_covered, verified, expires_at)
+        VALUES(:phone, :otp_code, :points, :amount, 0, :expires_at)
+    ", [
+        'phone' => $phone,
+        'otp_code' => $otp_code,
+        'points' => $points,
+        'amount' => $amount_covered,
+        'expires_at' => $expires_at
+    ]);
 
-	    $customer = $db->query("SELECT * FROM customers WHERE phone = :phone LIMIT 1", ['phone' => $phone]);
-	    if(!is_array($customer) || count($customer) == 0)
-	    {
-	        $info['success'] = false;
-	        $info['message'] = "Customer not found";
-	        echo json_encode($info);
-	        die();
-	    }
-	    $customer = $customer[0];
+    // TEMP DEBUG BLOCK
+    $sms_url = "https://api.keccel.com/sms/v1/message.asp?token=K54GTBD3RWUTCUK&from=BIAKUUZA&to="
+             . urlencode($phone) . "&message=" . urlencode("Your verification code is: " . $otp_code);
 
-	    if($points > $customer['points'])
-	    {
-	        $info['success'] = false;
-	        $info['message'] = "Not enough points. Available: " . $customer['points'];
-	        echo json_encode($info);
-	        die();
-	    }
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $sms_url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+	curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    $sms_response = curl_exec($ch);
+    $curl_err = curl_error($ch);
+    curl_close($ch);
 
-	    $amount_covered = $points / 50; // 50 points = $1
-	    $otp_code = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
-	    $expires_at = date('Y-m-d H:i:s', strtotime('+5 minutes'));
+    $info['success'] = true;
+    $info['amount_covered'] = $amount_covered;
+    $info['debug_sms_url'] = $sms_url;
+    $info['debug_sms_response'] = $sms_response;
+    $info['debug_curl_error'] = $curl_err;
+    echo json_encode($info);
+    die();
 
-	    $db->query("
-	        INSERT INTO points_otp(phone, otp_code, points_to_use, amount_covered, verified, expires_at)
-	        VALUES(:phone, :otp_code, :points, :amount, 0, :expires_at)
-	    ", [
-	        'phone' => $phone,
-	        'otp_code' => $otp_code,
-	        'points' => $points,
-	        'amount' => $amount_covered,
-	        'expires_at' => $expires_at
-	    ]);
-
-
-
-	   $sms_response = send_sms("243824218304", "Your verification code is: " . $otp_code . ". Valid for 5 minutes.");
-
-	    
-	    $info['success'] = true;
-	    $info['amount_covered'] = $amount_covered;
-	    echo json_encode($info);
-	    die();
-
-	}elseif($OBJ['data_type'] == "verify_points_otp")
+}elseif($OBJ['data_type'] == "verify_points_otp")
 {
     $phone = trim($OBJ['phone']);
     $code  = trim($OBJ['code']);

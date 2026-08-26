@@ -817,7 +817,7 @@ if (data.qty <= 5) {
 
 		    
 		    refresh_points_section();
-		    
+
 		    amount_paid_input.focus();
 		}
 	}
@@ -842,39 +842,32 @@ if (data.qty <= 5) {
 function validate_amount_paid(e) {
     var amount_input = document.querySelector(".js-amount-paid-input");
     var amount = amount_input.value.trim();
-	var sale_date = document.querySelector(".js-sale-date").value;
+    var sale_date = document.querySelector(".js-sale-date").value;
     
     if(amount == "") {
         alert("Please enter a valid amount");
         amount_input.focus();
         return;
     }
-
-    amount = parseFloat(amount);
     
-    // Calcul du Rendu (CHANGE) et de la Dette (BALANCE)
-    var diff = amount - GTOTAL;
-    var current_balance = 0;
+    var amount_due_in_cash = GTOTAL - (POINTS_APPLIED_AMOUNT || 0);
 
-    if(diff >= 0) {
-        // Le client a payé assez ou plus
-        CHANGE = diff.toFixed(2);
-        current_balance = 0;
-    } else {
-        // Le client n'a pas assez payé : on crée une balance positive
-        CHANGE = 0;
-        current_balance = Math.abs(diff).toFixed(2); // Le montant manquant (ex: 1$)
-    }
-
+	var diff = amount - amount_due_in_cash;
+	var current_balance = 0;
+	if(diff >= 0) {
+	    CHANGE = diff.toFixed(2);
+	    current_balance = 0;
+	} else {
+	    CHANGE = 0;
+	    current_balance = Math.abs(diff).toFixed(2);
+	}
     hide_modal(true, 'amount-paid');
     
-    // On ne montre le modal "Change" que s'il y a de la monnaie à rendre
     if(diff > 0) {
         document.querySelector(".js-change-input").innerHTML = CHANGE;
         show_modal('change');
     }
 
-    // Préparation des données simplifiées
     var ITEMS_NEW = [];
     for (var i = 0; i < ITEMS.length; i++) {
         var tmp = {};
@@ -883,48 +876,53 @@ function validate_amount_paid(e) {
         ITEMS_NEW.push(tmp);
     }
 
-    // Envoi des données au PHP (Ajout de balance)
     var payment_method = document.querySelector(".js-payment-method").value;
 
-	send_data({
-	    data_type: "checkout",
-	    text: ITEMS_NEW,
-	    amount_paid: amount,
-	    balance: current_balance,
-	    date: sale_date,
-	    order_id: CURRENT_ORDER_ID,
-	    customer_phone: CURRENT_CUSTOMER_PHONE,
-	    payment_method: payment_method,
-	    points_used: PENDING_POINTS,
-    	points_amount: POINTS_APPLIED_AMOUNT
-	});
+    // NEW — inline ajax call that WAITS for the server's response before printing
+    var checkout_ajax = new XMLHttpRequest();
+    checkout_ajax.addEventListener('readystatechange', function(){
+        if(checkout_ajax.readyState == 4 && checkout_ajax.status == 200)
+        {
+            var checkout_result = JSON.parse(checkout_ajax.responseText);
 
-  // REMOVE this whole save_order() block from inside validate_amount_paid()
+            print_receipt({
+                company: 'My POS',
+                amount: amount,
+                change: CHANGE,
+                balance: current_balance,
+                gtotal: GTOTAL,
+                data: ITEMS,
+                points_used: PENDING_POINTS,
+                points_amount: POINTS_APPLIED_AMOUNT,
+                customer: checkout_result.customer
+            });
 
+            ITEMS = [];
+            refresh_items_display();
+            amount_input.value = "";
+            remove_customer_from_sale();
+            PENDING_POINTS = 0;
+            POINTS_APPLIED_AMOUNT = 0;
 
-    // Impression du ticket (On affiche la balance sur le reçu)
-    print_receipt({
-        company: 'My POS',
-        amount: amount,
-        change: CHANGE,
+            send_data({
+                data_type: "search",
+                text: ""
+            });
+        }
+    });
+    checkout_ajax.open('post', 'index.php?pg=ajax', true);
+    checkout_ajax.send(JSON.stringify({
+        data_type: "checkout",
+        text: ITEMS_NEW,
+        amount_paid: amount,
         balance: current_balance,
-        gtotal: GTOTAL,
-        data: ITEMS
-    });
-
-    // Nettoyage
-    ITEMS = [];
-    refresh_items_display();
-    amount_input.value = "";
-
-    // Reset customer after successful checkout
-	remove_customer_from_sale();
-
-    // Recharger les produits
-    send_data({
-        data_type: "search",
-        text: ""
-    });
+        date: sale_date,
+        order_id: CURRENT_ORDER_ID,
+        customer_phone: CURRENT_CUSTOMER_PHONE,
+        payment_method: payment_method,
+        points_used: PENDING_POINTS,
+        points_amount: POINTS_APPLIED_AMOUNT
+    }));
 }
 // ADD it as its own top-level function, e.g. right after validate_amount_paid's closing brace:
 function save_order()
@@ -968,77 +966,105 @@ function save_order()
 
 
 	function print_receipt(obj)
-		{
-		    var TVA_RATE = 0.16;
-		    var subtotal = obj.gtotal / (1 + TVA_RATE);
-		    var tva = obj.gtotal - subtotal;
+{
+    var TVA_RATE = 0.16;
+    var subtotal = obj.gtotal / (1 + TVA_RATE);
+    var tva = obj.gtotal - subtotal;
 
-		    var itemsHtml = '';
-		    obj.data.forEach(function(item){
-		        var line_total = item.qty * item.amount;
-		        itemsHtml += '<tr>'
-		            + '<td>' + item.description + '</td>'
-		            + '<td style="text-align:center;">' + item.qty + '</td>'
-		            + '<td style="text-align:right;">$' + line_total.toFixed(2) + '</td>'
-		            + '</tr>';
-		    });
+    var itemsHtml = '';
+    obj.data.forEach(function(item){
+        var line_total = item.qty * item.amount;
+        itemsHtml += '<tr>'
+            + '<td>' + item.description + '</td>'
+            + '<td style="text-align:center;">' + item.qty + '</td>'
+            + '<td style="text-align:right;">$' + line_total.toFixed(2) + '</td>'
+            + '</tr>';
+    });
 
-		    var balanceHtml = '';
-		    if(obj.balance && parseFloat(obj.balance) > 0)
-		    {
-		        balanceHtml = '<div style="text-align:center;font-weight:bold;border:1px solid #000;padding:4px;margin-top:8px;">'
-		            + 'BALANCE DUE: $' + parseFloat(obj.balance).toFixed(2) + '</div>';
-		    }
+    var balanceHtml = '';
+    if(obj.balance && parseFloat(obj.balance) > 0)
+    {
+        balanceHtml = '<div style="text-align:center;font-weight:bold;border:1px solid #000;padding:4px;margin-top:8px;">'
+            + 'BALANCE DUE: $' + parseFloat(obj.balance).toFixed(2) + '</div>';
+    }
 
-		    var html = `
-		        <div style="text-align:center;border-bottom:2px dashed #000;padding-bottom:10px;margin-bottom:10px;">
-		            <h2 style="margin:0;">${obj.company}</h2>
-		            <div style="font-size:11px;">${new Date().toLocaleString()}</div>
-		            <div style="font-size:11px;">Receipt #${obj.receipt_no || '-'}</div>
-		        </div>
+    var pointsHtml = '';
+    if(obj.points_used && obj.points_used > 0)
+    {
+        pointsHtml = '<div style="display:flex;justify-content:space-between;color:#b8860b;">'
+            + '<span>Paid with Points (' + obj.points_used + ' pts)</span>'
+            + '<span>-$' + parseFloat(obj.points_amount).toFixed(2) + '</span>'
+            + '</div>';
+    }
 
-		        <table style="width:100%;border-collapse:collapse;margin-bottom:10px;">
-		            <thead>
-		                <tr style="border-bottom:1px solid #000;">
-		                    <th style="text-align:left;font-size:11px;">Item</th>
-		                    <th style="text-align:center;font-size:11px;">Qty</th>
-		                    <th style="text-align:right;font-size:11px;">Total</th>
-		                </tr>
-		            </thead>
-		            <tbody>${itemsHtml}</tbody>
-		        </table>
+    // ADD THIS BLOCK — this is Point 3, added right here
+    var customerHtml = '';
+    if(obj.customer)
+    {
+        customerHtml = `
+            <div style="border-bottom:1px dashed #000;padding-bottom:8px;margin-bottom:8px;font-size:11px;">
+                <div><b>Customer:</b> ${obj.customer.name}</div>
+                <div><b>Phone:</b> ${obj.customer.phone}</div>
+                <div><b>Points Balance:</b> ${parseFloat(obj.customer.points).toFixed(2)} pts</div>
+            </div>
+        `;
+    }
+    // END ADDED BLOCK
 
-		        <div style="border-top:1px dashed #000;padding-top:6px;font-size:12px;">
-		            <div style="display:flex;justify-content:space-between;">
-		                <span>Subtotal</span><span>$${subtotal.toFixed(2)}</span>
-		            </div>
-		            <div style="display:flex;justify-content:space-between;">
-		                <span>TVA (16%)</span><span>$${tva.toFixed(2)}</span>
-		            </div>
-		            <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:bold;border-top:1px solid #000;margin-top:6px;padding-top:6px;">
-		                <span>TOTAL</span><span>$${parseFloat(obj.gtotal).toFixed(2)}</span>
-		            </div>
-		        </div>
+    var html = `
+        <div style="text-align:center;border-bottom:2px dashed #000;padding-bottom:10px;margin-bottom:10px;">
+            <h2 style="margin:0;">${obj.company}</h2>
+            <div style="font-size:11px;">${new Date().toLocaleString()}</div>
+            <div style="font-size:11px;">Receipt #${obj.receipt_no || '-'}</div>
+        </div>
 
-		        <div style="border-top:1px dashed #000;margin-top:8px;padding-top:8px;font-size:12px;">
-		            <div style="display:flex;justify-content:space-between;">
-		                <span>Amount Paid</span><span>$${parseFloat(obj.amount).toFixed(2)}</span>
-		            </div>
-		            <div style="display:flex;justify-content:space-between;">
-		                <span>Change</span><span>$${parseFloat(obj.change).toFixed(2)}</span>
-		            </div>
-		        </div>
+        ${customerHtml}
 
-		        ${balanceHtml}
+        <table style="width:100%;border-collapse:collapse;margin-bottom:10px;">
+            <thead>
+                <tr style="border-bottom:1px solid #000;">
+                    <th style="text-align:left;font-size:11px;">Item</th>
+                    <th style="text-align:center;font-size:11px;">Qty</th>
+                    <th style="text-align:right;font-size:11px;">Total</th>
+                </tr>
+            </thead>
+            <tbody>${itemsHtml}</tbody>
+        </table>
 
-		        <div style="text-align:center;margin-top:14px;padding-top:10px;border-top:2px dashed #000;font-size:11px;">
-		            Thank you for your purchase!
-		        </div>
-		    `;
+        <div style="border-top:1px dashed #000;padding-top:6px;font-size:12px;">
+            <div style="display:flex;justify-content:space-between;">
+                <span>Subtotal</span><span>$${subtotal.toFixed(2)}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+                <span>TVA (16%)</span><span>$${tva.toFixed(2)}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:bold;border-top:1px solid #000;margin-top:6px;padding-top:6px;">
+                <span>TOTAL</span><span>$${parseFloat(obj.gtotal).toFixed(2)}</span>
+            </div>
+        </div>
 
-		    document.getElementById('printable-receipt').innerHTML = html;
-		    window.print();
-		}
+        <div style="border-top:1px dashed #000;margin-top:8px;padding-top:8px;font-size:12px;">
+            ${pointsHtml}
+            <div style="display:flex;justify-content:space-between;">
+                <span>Amount Paid</span><span>$${parseFloat(obj.amount).toFixed(2)}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+                <span>Change</span><span>$${parseFloat(obj.change).toFixed(2)}</span>
+            </div>
+        </div>
+
+        ${balanceHtml}
+
+        ${customerHtml}
+
+        <div style="text-align:center;margin-top:14px;padding-top:10px;border-top:2px dashed #000;font-size:11px;">
+            Thank you for your purchase!
+        </div>
+    `;
+
+    document.getElementById('printable-receipt').innerHTML = html;
+    window.print();
+}
  
  	function close_receipt_window()
  	{

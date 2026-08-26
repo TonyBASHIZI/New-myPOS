@@ -236,7 +236,7 @@ Swal.fire({
 	<h2>Total sales : $<?=number_format($sales_total,2)?></h2>
 	<table class="table table-striped table-hover">
 		<tr>
-			<th>Barcode</th><th>Facture No</th><th>Details</th><th>Qty</th><th>U Price</th><th>Total to paid</th><th>Total paid</th><th>Balance</th><th>Caissier</th><th>Date sales</th>
+			<th>Barcode</th><th>Facture No</th><th>Details</th><th>Qty</th><th>U Price</th><th>Total to paid</th><th>Total paid</th><th>Balance</th><th>Point amount</th><th>Caissier</th><th>Date sales</th>
 			<th>
                 <div class="d-flex gap-2">
                     <a href="index.php?pg=home" class="btn btn-primary btn-sm">
@@ -286,7 +286,16 @@ Swal.fire({
                 <br><small class="badge bg-danger"> A justifier</small>
             <?php endif; ?>
         </td>
-				<?php 
+        <td>
+            <?php if($sale['points_amount'] > 0):?>
+                <span class="badge bg-warning text-dark">
+                    <i class="fa fa-star"></i> $<?=number_format($sale['points_amount'],2)?>
+                </span>
+            <?php else:?>
+                <span class="text-muted">-</span>
+            <?php endif;?>
+        </td>
+        				<?php 
 					$cashier = get_user_by_id($sale['user_id']);
 					if(empty($cashier)){
 						$name = "Unknown";
