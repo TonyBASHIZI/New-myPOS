@@ -338,6 +338,9 @@ if($tab == "dashboard")
 	$stocklastlot = $db->query($query);
 	$totalLastlot = $stocklastlot[0]['netTotallot'];
 
+	$today_points = $db->query("SELECT COALESCE(SUM(points_amount), 0) AS total_points_today FROM sales WHERE DATE(date) = CURDATE()");
+	$totalPointsToday = is_array($today_points) ? $today_points[0]['total_points_today'] : 0;
+
 	
 }else
 if($tab =="categories")
@@ -677,7 +680,7 @@ else if($tab == "stock"){
 
     
 }else if($tab == "print_labels"){
-	
+
     $db = new Database();
 
     $products = $db->query("SELECT id, description, barcode, amount FROM products ORDER BY description ASC");

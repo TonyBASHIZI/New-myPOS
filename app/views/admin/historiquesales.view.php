@@ -119,7 +119,7 @@
 
 	<table class="table table-striped table-hover">
 		<tr>
-			<th>Barcode</th><th>Facture No</th><th>Details</th><th>Qty</th><th>U Price</th><th>Total to paid</th><th>Total paid</th><th>Balance</th><th>Caissier</th><th>Date sales</th>
+			<th>Barcode</th><th>Facture No</th><th>Details</th><th>Qty</th><th>U Price</th><th>Total to paid</th><th>Total paid</th><th>Balance</th><th>Points_amount</th><th>Caissier</th><th>Date sales</th>
 			
 
 			<th>
@@ -138,15 +138,17 @@
 				<td><?=esc($sale['qty'])?></td>
 				<td><?=esc($sale['amount'])?>$</td>
 				<td><?=esc($sale['total'])?>$</td>
-                 <td class="text-success fw-bold">
-            $<?= number_format($sale['total'] - $sale['balance'], 2) ?>
-        </td>
-				 <td style="font-weight: bold; color: <?= ($sale['balance'] > 0) ? '#e74c3c' : '#2ecc71' ?>;">
-            $<?= number_format($sale['balance'], 2) ?>
-            <?php if($sale['balance'] > 0): ?>
-                <br><small class="badge bg-danger"> A justifier</small>
-            <?php endif; ?>
-        </td>
+                <td class="text-success fw-bold">
+                $<?= number_format($sale['total'] - $sale['balance'], 2) ?>
+                </td>
+
+				<td style="font-weight: bold; color: <?= ($sale['balance'] > 0) ? '#e74c3c' : '#2ecc71' ?>;">
+                $<?= number_format($sale['balance'], 2) ?>
+                <?php if($sale['balance'] > 0): ?>
+                    <br><small class="badge bg-danger"> A justifier</small>
+                <?php endif; ?>
+                </td>
+                <td><?=esc($sale['points_amount'])?>$</td>
 				<?php 
 					$cashier = get_user_by_id($sale['user_id']);
 					if(empty($cashier)){

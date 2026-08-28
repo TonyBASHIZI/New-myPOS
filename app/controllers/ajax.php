@@ -47,7 +47,6 @@ if(!empty($raw_data))
     $final_date = $custom_date . " " . date("H:i:s");
     $balance = isset($OBJ['balance']) ? (float)$OBJ['balance'] : 0;
     $payment_method = isset($OBJ['payment_method']) ? $OBJ['payment_method'] : 'Cash';
-
     $db = new Database();
 
     if(!empty($OBJ['order_id']))
@@ -58,33 +57,18 @@ if(!empty($raw_data))
             'id'       => $OBJ['order_id']
         ]);
     }
+
     if(!empty($OBJ['points_used']) && $OBJ['points_used'] > 0)
-		{
-		    $db->query(
-		        "UPDATE customers SET points = points - :points WHERE phone = :phone",
-		        ['points' => $OBJ['points_used'], 'phone' => $OBJ['customer_phone']]
-		    );
-		}
- 	
- 	$customer_info = null;
-	if(!empty($OBJ['customer_phone']))
-	{
-	    $customer_check = $db->query("SELECT name, phone, points FROM customers WHERE phone = :phone LIMIT 1", ['phone' => $OBJ['customer_phone']]);
-	    if(is_array($customer_check) && count($customer_check) > 0)
-	    {
-	        $customer_info = $customer_check[0];
-	    }
-	}
+    {
+        $db->query(
+            "UPDATE customers SET points = points - :points WHERE phone = :phone",
+            ['points' => $OBJ['points_used'], 'phone' => $OBJ['customer_phone']]
+        );
+    }
 
-	$info['data_type'] = "checkout";
-	$info['data'] = "items saved successfully!";
-	$info['customer'] = $customer_info; // NEW — null if no customer attached
-
-
-    $grand_total = 0; // NEW — accumulate as we go
-
+    $grand_total = 0;
     $points_amount = isset($OBJ['points_amount']) ? (float)$OBJ['points_amount'] : 0;
-	$first_item = true;
+    $first_item = true;
 
     foreach ($data as $row) {
         $query = "select * from products where id = :id limit 1";
@@ -94,27 +78,29 @@ if(!empty($raw_data))
             $check = $check[0];
             $qty = $row['qty'];
             $line_total = $qty * $check['amount'];
-            $grand_total += $line_total; // NEW — add this line's total to the running sum
+            $grand_total += $line_total;
 
             $arr = [];
-            $arr['barcode']     = $check['barcode'];
-            $arr['description'] = $check['description'];
-            $arr['amount']      = $check['amount'];
-            $arr['qty']         = $qty;
-            $arr['total']       = $line_total;
-            $arr['receipt_no']  = $receipt_no;
-            $arr['date']        = $final_date;
-            $arr['user_id']     = $user_id;
-            $arr['balance']     = $balance;
+            $arr['barcode']        = $check['barcode'];
+            $arr['description']    = $check['description'];
+            $arr['amount']         = $check['amount'];
+            $arr['qty']            = $qty;
+            $arr['total']          = $line_total;
+            $arr['receipt_no']     = $receipt_no;
+            $arr['date']           = $final_date;
+            $arr['user_id']        = $user_id;
+            $arr['balance']        = $balance;
             $arr['payment_method'] = $payment_method;
-            $query = "insert into sales (barcode,receipt_no,description,qty,amount,total,date,user_id,balance,payment_method) values (:barcode,:receipt_no,:description,:qty,:amount,:total,:date,:user_id,:balance,:payment_method)";
+            $arr['points_amount']  = $first_item ? $points_amount : 0;
+            $first_item = false;
+
+            $query = "insert into sales (barcode,receipt_no,description,qty,amount,total,date,user_id,balance,payment_method,points_amount) values (:barcode,:receipt_no,:description,:qty,:amount,:total,:date,:user_id,:balance,:payment_method,:points_amount)";
             $db->query($query,$arr);
             $db->query("update products set views = views + 1 where id = :id limit 1",['id'=>$check['id']]);
             $db->query("UPDATE products SET qty = qty - :qty WHERE id = :id LIMIT 1",['qty'=>$qty, 'id'=>$check['id']]);
         }
     }
 
-    // MOVED here, now that $grand_total is actually populated
     if(!empty($OBJ['customer_phone']))
     {
         $points_earned = $grand_total * 0.05;
@@ -124,9 +110,21 @@ if(!empty($raw_data))
         );
     }
 
+    $customer_info = null;
+    if(!empty($OBJ['customer_phone']))
+    {
+        $customer_check = $db->query("SELECT name, phone, points FROM customers WHERE phone = :phone LIMIT 1", ['phone' => $OBJ['customer_phone']]);
+        if(is_array($customer_check) && count($customer_check) > 0)
+        {
+            $customer_info = $customer_check[0];
+        }
+    }
+
     $info['data_type'] = "checkout";
     $info['data'] = "items saved successfully!";
+    $info['customer'] = $customer_info;
     echo json_encode($info);
+    die();
 }elseif($OBJ['data_type'] == "load_order")
 			{
 			    $order_id = $OBJ['order_id'];

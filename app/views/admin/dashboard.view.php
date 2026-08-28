@@ -71,11 +71,18 @@ html
 		<i class="fa fa-money-bill-wave" style="font-size: 30px"></i>
 		<h4>Amount Sales today</h4>
 		<h2><?=$total_sales_todays?>$</h1>
+
+		<span class="badge" style="background:#fff3cd;color:#856404;font-size:12px;padding:6px 10px;border-radius:20px;">
+        <i class="fa fa-star"></i> $<?=number_format($totalPointsToday,2)?> via Points
+    	</span>
+
 	</div>
 	<div class="col-md-3 border rounded p-4 my-2">
 		<i class="fa fa-tag" style="font-size: 30px"></i>
 		<h4>Items sales</h4>
 		<h2><?=$total_sales_today?></h1>
+
+    </p>
 		
 	</div>
 	<div class="col-md-3 border rounded p-4 my-2 order-stat-card">
