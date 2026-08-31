@@ -93,49 +93,49 @@
 	<div id="printable-receipt" style="display:none;"></div>
 
 	<div class="modal fade" id="customerModal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="border-radius:12px;">
-      <div class="modal-header">
-        <h5 class="modal-title"><i class="fa fa-star text-warning"></i> Customer Loyalty</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
+	  <div class="modal-dialog modal-dialog-centered">
+	    <div class="modal-content" style="border-radius:12px;">
+	      <div class="modal-header">
+	        <h5 class="modal-title"><i class="fa fa-star text-warning"></i> Customer Loyalty</h5>
+	        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+	      </div>
+	      <div class="modal-body">
 
-        <label class="form-label small text-muted">Phone Number</label>
-        <div class="input-group mb-3">
-            <input type="text" class="form-control js-customer-phone" placeholder="e.g. 0812345678">
-            <button type="button" class="btn btn-secondary" onclick="lookup_customer()">
-                <i class="fa fa-search"></i> Check
-            </button>
-        </div>
+	        <label class="form-label small text-muted">Phone Number</label>
+	        <div class="input-group mb-3">
+	            <input type="text" class="form-control js-customer-phone" placeholder="e.g. 243812345678">
+	            <button type="button" class="btn btn-secondary" onclick="lookup_customer()">
+	                <i class="fa fa-search"></i> Check
+	            </button>
+	        </div>
 
-        <!-- shown when phone is found -->
-        <div class="js-customer-found d-none alert alert-success">
-            <div><b class="js-found-name"></b></div>
-            <div>Current points: <b class="js-found-points"></b></div>
-        </div>
+	        <!-- shown when phone is found -->
+	        <div class="js-customer-found d-none alert alert-success">
+	            <div><b class="js-found-name"></b></div>
+	            <div>Current points: <b class="js-found-points"></b></div>
+	        </div>
 
-        <!-- shown when phone is NOT found -->
-        <div class="js-customer-new d-none">
-            <label class="form-label small text-muted">Name</label>
-            <input type="text" class="form-control mb-2 js-customer-name" placeholder="Customer name">
-            <button type="button" class="btn btn-success w-100" onclick="register_customer()">
-                <i class="fa fa-user-plus"></i> Register & Attach
-            </button>
-        </div>
+	        <!-- shown when phone is NOT found -->
+	        <div class="js-customer-new d-none">
+	            <label class="form-label small text-muted">Name</label>
+	            <input type="text" class="form-control mb-2 js-customer-name" placeholder="Customer name" onkeyup="if(event.keyCode == 13) register_customer()">
+	            <button type="button" class="btn btn-success w-100" onclick="register_customer()">
+	                <i class="fa fa-user-plus"></i> Register & Attach
+	            </button>
+	        </div>
 
-      </div>
-      <div class="modal-footer">
-       
-		        <div class="modal-footer">
-		    <button type="button" class="btn btn-outline-danger" onclick="remove_customer_from_sale()">Remove customer</button>
-		    <button type="button" class="btn btn-primary" onclick="continue_to_payment()">
-		        <i class="fa fa-arrow-right"></i> Continue to Payment
-		    </button>
-		</div>
-      </div>
-    </div>
-  </div>
+	      </div>
+	      <div class="modal-footer">
+	       
+			        <div class="modal-footer">
+			    <button type="button" class="btn btn-outline-danger" onclick="remove_customer_from_sale()">Remove customer</button>
+			    <button type="button" class="btn btn-primary" onclick="continue_to_payment()">
+			        <i class="fa fa-arrow-right"></i> Continue to Payment
+			    </button>
+			</div>
+	      </div>
+	    </div>
+	  </div>
 </div>
 	<div class="d-flex">
 		<div style="min-height:600px;" class="shadow-sm col-7 p-4">
@@ -849,7 +849,7 @@ function validate_amount_paid(e) {
         amount_input.focus();
         return;
     }
-    
+
     var amount_due_in_cash = GTOTAL - (POINTS_APPLIED_AMOUNT || 0);
 
 	var diff = amount - amount_due_in_cash;
@@ -1354,6 +1354,21 @@ function request_points_otp()
         points: points
     }));
 }
+
+ document.querySelector(".js-customer-phone").addEventListener('keyup', function(e){
+    if(e.keyCode == 13)
+    {
+        var foundBox = document.querySelector(".js-customer-found");
+        if(!foundBox.classList.contains('d-none'))
+        {
+            // customer already found from a previous Enter — this Enter continues
+            continue_to_payment();
+        }else{
+            // not found yet — this Enter does the lookup
+            lookup_customer();
+        }
+    }
+});
 
 
 </script>

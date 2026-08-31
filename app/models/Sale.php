@@ -10,6 +10,7 @@ class Sale extends Model
     protected $allowed_columns = [
         'barcode',
         'receipt_no',
+        'des',
         'user_id',
         'description',
         'qty',

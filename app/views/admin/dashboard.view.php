@@ -1,4 +1,3 @@
-html
 <style>
 .order-stat-card .stat-row {
     display: flex;

@@ -1,112 +1,165 @@
-<?php
-// N'oubliez pas l'inclusion de votre classe Database
-require('fpdf.php');
-
-if (isset($_GET['id']) && $_GET['id'] != "") {
-    
-    $db = new Database();
-    $id_vente = $_GET['id'];
-
-    // --- RÉCUPÉRATION DES DONNÉES ---
-    $sql_sale = "SELECT * FROM sales WHERE receipt_no = :id";
-    $sales_items = $db->query($sql_sale, ['id' => $id_vente]);
-
-    if (!$sales_items) {
-        die("Erreur : Aucune donnée trouvée pour ce reçu.");
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Receipt <?=esc($receipt_no)?></title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        font-family: 'Courier New', monospace;
+        width: 320px;
+        margin: 20px auto;
+        padding: 16px;
+        color: #000;
+        font-size: 13px;
     }
-
-    $first_row = $sales_items[0];
-    $user_id = $first_row['user_id'] ?? 0; 
-    $sql_user = "SELECT * FROM users WHERE id = :uid LIMIT 1";
-    $user_result = $db->query($sql_user, ['uid' => $user_id]);
-    $user = $user_result ? $user_result[0] : ['username' => 'Inconnu'];
-
-    // --- CONFIGURATION PDF 58MM ---
-    class PDF extends FPDF {
-        function Header() {}
-        function Footer() {}
+    .receipt-header {
+        text-align: center;
+        margin-bottom: 14px;
+        padding-bottom: 12px;
+        border-bottom: 2px dashed #000;
     }
-
-    // Largeur 58mm, Hauteur variable (200mm)
-    $pdf = new PDF('P', 'mm', array(58, 200)); 
-    $pdf->SetMargins(2, 4, 2); // Marges réduites à 2mm pour utiliser 54mm utiles
-    $pdf->SetAutoPageBreak(true, 5);
-    $pdf->AddPage();
-
-    // Largeur utile réelle (58 - 4mm de marges = 54mm)
-    $w_util = 54;
-
-    // --- DESIGN DU TICKET ---
-    $pdf->SetFont('Arial', 'B', 11);
-    $pdf->MultiCell($w_util, 5, "PATRICK BUSINESS CAR", 0, 'C');
-    
-    $pdf->SetFont('Arial', '', 8);
-    $pdf->MultiCell($w_util, 4, utf8_decode("VENTE DE PIECES DE RECHANGE"), 0, 'C');
-    $pdf->Ln(2);
-    $pdf->Cell($w_util, 0, "", 'T', 1, 'C');
-    $pdf->Ln(2);
-
-    // INFOS GÉNÉRALES
-    $pdf->SetFont('Arial', 'B', 9);
-    $pdf->Cell($w_util, 5, utf8_decode("TICKET N° : ") . $id_vente, 0, 1, 'C'); // Centré
-    $pdf->SetFont('Arial', '', 8);
-    $pdf->Cell($w_util, 4, "Date : " . date('d/m/Y H:i', strtotime($first_row['date'])), 0, 1, 'C'); // Centré
-    $pdf->Cell($w_util, 4, "Vendeur : " . utf8_decode($user['username']), 0, 1, 'C'); // Centré
-
-    $pdf->Ln(2);
-    $pdf->Cell($w_util, 0, "", 'T', 1, 'C');
-    $pdf->Ln(1);
-
-    // --- ENTÊTE TABLEAU (Plus gros, 9pt) ---
-    // Répartition : Qty (8mm) | Desc (26mm) | Montant (20mm)
-    $pdf->SetFont('Arial', 'B', 9);
-    $pdf->Cell(8, 5, "Qt", 0, 0, 'L');
-    $pdf->Cell(26, 5, "ARTICLE", 0, 0, 'L');
-    $pdf->Cell(20, 5, "P.T", 0, 1, 'R');
-    $pdf->Cell($w_util, 0, "", 'T', 1);
-    $pdf->Ln(1);
-
-    // --- BOUCLE PRODUITS (Police 9pt) ---
-    $grand_total = 0;
-
-    foreach ($sales_items as $item) {
-        $startX = $pdf->GetX();
-        $startY = $pdf->GetY();
-        
-        // 1. Quantité (Agrandie et en gras)
-        $pdf->SetFont('Arial', 'B', 9);
-        $pdf->Cell(8, 5, $item['qty'], 0, 0, 'L');
-        
-        // 2. Description (Police normale 8pt)
-        $pdf->SetFont('Arial', '', 8);
-        $pdf->MultiCell(26, 5, utf8_decode($item['description']), 0, 'L');
-        $endY = $pdf->GetY();
-        
-        // 3. Montant (Prix Total en gras 9pt)
-        $pdf->SetFont('Arial', 'B', 9);
-        $pdf->SetXY($startX + 34, $startY); // On se place après les 8mm + 26mm
-        $pdf->Cell(20, 5, number_format($item['total'], 2) . " $", 0, 1, 'R');
-        
-        $pdf->SetY($endY); // Repositionne le curseur pour le prochain article
-        $grand_total += $item['total'];
-        $pdf->Ln(1);
+    .receipt-header h2 {
+        font-size: 18px;
+        letter-spacing: 1px;
+        margin-bottom: 4px;
     }
+    .receipt-header .meta {
+        font-size: 11px;
+        color: #444;
+    }
+    .receipt-items {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 12px;
+    }
+    .receipt-items th {
+        text-align: left;
+        font-size: 11px;
+        border-bottom: 1px solid #000;
+        padding-bottom: 4px;
+    }
+    .receipt-items td {
+        font-size: 12px;
+        padding: 3px 0;
+        vertical-align: top;
+    }
+    .receipt-items .qty-col { text-align: center; width: 30px; }
+    .receipt-items .amt-col { text-align: right; }
 
-    // --- TOTAL GÉNÉRAL (BIEN VISIBLE) ---
-    $pdf->Ln(1);
-    $pdf->Cell($w_util, 0, "", 'T', 1);
-    $pdf->SetFont('Arial', 'B', 12); // Très gros pour le prix final
-    $pdf->Cell(25, 10, "TOTAL", 0, 0, 'L');
-    $pdf->Cell(29, 10, number_format($grand_total, 2) . " $", 0, 1, 'R');
+    .receipt-totals {
+        border-top: 1px dashed #000;
+        padding-top: 8px;
+        margin-top: 8px;
+    }
+    .receipt-totals .row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 12px;
+        padding: 2px 0;
+    }
+    .receipt-totals .points-row {
+        color: #b8860b;
+    }
+    .receipt-totals .grand-total {
+        font-size: 16px;
+        font-weight: bold;
+        border-top: 1px solid #000;
+        margin-top: 6px;
+        padding-top: 6px;
+    }
+    .receipt-customer {
+        border-top: 1px dashed #000;
+        margin-top: 8px;
+        padding-top: 8px;
+        font-size: 11px;
+    }
+    .receipt-footer {
+        text-align: center;
+        margin-top: 16px;
+        padding-top: 12px;
+        border-top: 2px dashed #000;
+        font-size: 11px;
+        color: #444;
+    }
+    @media print {
+        body { width: 100%; margin: 0; }
+    }
+</style>
+</head>
+<body>
 
-    // PIED DE PAGE
-    $pdf->Ln(2);
-    $pdf->SetFont('Arial', 'BI', 8); // Agrandissement à 8pt
-    $pdf->MultiCell($w_util, 4, utf8_decode("Marchandises ni reprises ni échangées.\nMerci de votre confiance !"), 0, 'C');
+    <div class="receipt-header">
+        <h2>My POS</h2>
+        <div class="meta"><?=date("d/m/Y H:i", strtotime($first_row['date']))?></div>
+        <div class="meta">Receipt #<?=esc($receipt_no)?></div>
+        <div class="meta">Cashier: <?=esc($cashier_name)?></div>
+    </div>
 
-    $pdf->Ln(10);
-    $pdf->Cell($w_util, 2, ".", 0, 1, 'C');
+    <table class="receipt-items">
+        <thead>
+            <tr>
+                <th>Item</th>
+                <th class="qty-col">Qty</th>
+                <th class="amt-col">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach($sales_items as $item):?>
+            <tr>
+                <td><?=esc($item['description'])?></td>
+                <td class="qty-col"><?=esc($item['qty'])?></td>
+                <td class="amt-col">$<?=number_format($item['total'],2)?></td>
+            </tr>
+            <?php endforeach;?>
+        </tbody>
+    </table>
 
-    $pdf->Output('I', 'Ticket_'.$id_vente.'.pdf');
-    exit;
-}
+    <?php
+        $TVA_RATE = 0.16;
+        $subtotal = $grand_total / (1 + $TVA_RATE);
+        $tva = $grand_total - $subtotal;
+    ?>
+
+    <div class="receipt-totals">
+        <div class="row">
+            <span>Subtotal</span>
+            <span>$<?=number_format($subtotal,2)?></span>
+        </div>
+        <div class="row">
+            <span>TVA (16%)</span>
+            <span>$<?=number_format($tva,2)?></span>
+        </div>
+
+        <?php if($points_amount_total > 0):?>
+        <div class="row points-row">
+            <span>Paid with Points</span>
+            <span>-$<?=number_format($points_amount_total,2)?></span>
+        </div>
+        <?php endif;?>
+
+        <div class="row grand-total">
+            <span>TOTAL</span>
+            <span>$<?=number_format($grand_total,2)?></span>
+        </div>
+    </div>
+
+    <?php if($customer):?>
+    <div class="receipt-customer">
+        <div><b>Customer:</b> <?=esc($customer['name'])?></div>
+        <div><b>Phone:</b> <?=esc($customer['phone'])?></div>
+        <div><b>Points Balance:</b> <?=number_format($customer['points'],2)?> pts</div>
+    </div>
+    <?php endif;?>
+
+    <div class="receipt-footer">
+        <div>Thank you for your purchase!</div>
+    </div>
+
+<script>
+    window.onafterprint = function(){ window.close(); };
+    window.print();
+</script>
+
+</body>
+</html>
