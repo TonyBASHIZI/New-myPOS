@@ -172,7 +172,7 @@
 			
 			<div class="table-responsive" style="height:400px;overflow-y: scroll;">
 				<div class="input-group mb-3">
-				    <input type="number" class="form-control js-order-id-input" placeholder="Order ID">
+				    <input type="number" class="form-control js-order-id-input" placeholder="Order ID" onkeyup="if(event.keyCode == 13) load_order()">
 				    <button type="button" onclick="load_order()" class="btn btn-secondary">
 				        <i class="fa fa-arrow-right"></i> Go
 				    </button>
