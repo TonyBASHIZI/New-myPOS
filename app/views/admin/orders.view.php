@@ -237,6 +237,9 @@
 							</td>
 							<td rowspan="<?=$item_count?>">
 							    <span class="badge bg-light text-dark border">#<?=esc($order['order_id'])?></span>
+                                <a href="index.php?pg=order-receipt&id=<?=$order['order_id']?>" target="_blank" class="btn btn-sm btn-outline-dark">
+                                    <i class="fa fa-print"></i>
+                                </a>
 							</td>
 							<?php endif;?>
 

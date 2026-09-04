@@ -137,7 +137,21 @@
 	    </div>
 	  </div>
 </div>
-	<div class="d-flex">
+<div class="modal fade" id="printOrderModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content" style="border-radius:12px;">
+      <div class="modal-body text-center py-4">
+        <i class="fa fa-check-circle text-success" style="font-size:40px;"></i>
+        <h5 class="mt-2">Order Saved</h5>
+        <p class="text-muted small" id="printOrderNo"></p>
+        <a href="#" target="_blank" id="printOrderLink" class="btn btn-dark w-100">
+            <i class="fa fa-print"></i> Print Order
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="d-flex">
 		<div style="min-height:600px;" class="shadow-sm col-7 p-4">
 			
 			<div class="input-group mb-3"><h3> Products </h3>
@@ -519,7 +533,16 @@ window.onload = function() {
 				}
 			}else if(obj.data_type == "save_order")
 				{
+
+					
+
 				    show_toast("success", "Order Saved", obj.data + " — Order No: " + obj.order_no);
+
+				    if(obj.order_id)
+				    {
+				        window.open("index.php?pg=order-receipt&id=" + obj.order_id, "_blank");
+				    }
+
 				    ITEMS = [];
 				    refresh_items_display();
 				    send_data({
@@ -1369,6 +1392,15 @@ function request_points_otp()
         }
     }
 });
+
+ function show_print_order_prompt(order_id, order_no)
+{
+    document.getElementById('printOrderNo').innerText = "Order #" + order_no;
+    document.getElementById('printOrderLink').href = "index.php?pg=order-receipt&id=" + order_id;
+
+    var modal = new bootstrap.Modal(document.getElementById('printOrderModal'));
+    modal.show();
+}
 
 
 </script>

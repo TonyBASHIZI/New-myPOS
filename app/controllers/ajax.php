@@ -311,6 +311,7 @@ if(!empty($raw_data))
         $info['data_type'] = "save_order";
         $info['data'] = "Aucun produit valide dans la commande";
         echo json_encode($info);
+        $info['order_id'] = $order_id;
         die();
     }
 
@@ -340,6 +341,8 @@ if(!empty($raw_data))
     $info['data_type'] = "save_order";
     $info['data'] = "Commande enregistrée avec succès";
     $info['order_no'] = $order_no;
+
+    $info['order_id'] = $order_id;
     echo json_encode($info);
     die();
 }elseif($OBJ['data_type'] == "lookup_customer")
