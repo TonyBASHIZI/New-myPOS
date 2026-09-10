@@ -37,7 +37,7 @@
 			  		<li class="list-group-item <?=$tab=='stocks'?'active':''?>" class="nav-item"
                     style="border-radius:8px;"
                     onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
-                    onmouseout="this.style.backgroundColor=''; this.style.color='';"><i class="fa fa-box"></i> StockReceived</li>
+                    onmouseout="this.style.backgroundColor=''; this.style.color='';"><i class="fa fa-box"></i> Stock Received</li>
 				</a>
 			  	<a href="index.php?pg=admin&tab=products">
 			  		<li class="list-group-item <?=$tab=='products'?'active':''?>" class="nav-item"

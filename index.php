@@ -291,7 +291,7 @@
                 Quality, safety, performance — we keep your vehicle running smoothly</p>
           		<p><span class="contact-icon fa fa-envelope-o"></span> Email: info@pb-cars.com</p>
                 <p><span class="contact-icon fa fa-phone"></span> Phone: 070-070-0880</p>
-                <a href="https://pb-cars.com/public/" target="_blank" style="
+                <a href="https://v2.pb-cars.com/public/" target="_blank" style="
                         display:inline-block;
                         padding:10px 18px;
                         background:#007bff;

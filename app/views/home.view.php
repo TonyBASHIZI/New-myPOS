@@ -640,7 +640,7 @@ if (data.qty <= 5) {
 }
 
 
-    return `
+   return `
         <!--card-->
         <div class="card m-2 border-0 mx-auto shadow-sm" style="min-width: 190px; max-width: 190px; position: relative;">
             <a href="#">
@@ -649,18 +649,21 @@ if (data.qty <= 5) {
 
             <!-- Badge Shop en haut à droite -->
             <span class="badge ${badgeColor} position-absolute" style="top: 8px; right: 8px; font-size: 11px; z-index: 10;">
-                Shop: ${shopID}
+                Shop ${shopID}
             </span>
 
             <div class="p-2">
-                <div class="text-muted" style="font-size: 14px; height: 38px; overflow: hidden;">${data.description}</div>
+                <div style="font-size: 14px; font-weight: 500; line-height: 1.35; height: 38px; overflow: hidden; color: #000; font-style: italic;">${data.description}</div>
                 <div class="d-flex justify-content-between align-items-center mt-2">
-                    <b style="font-size:18px">$${data.amount}</b>
-                     
-                    <!-- Badge de Stock Dynamique -->
-                    <span class="badge ${qtyBadge} shadow-sm" style="font-size: 11px; padding: 5px 8px;">
-                        <i class="fa fa-boxes"></i> Stock: ${data.qty}
-                    </span>
+                    <b style="font-size:19px; font-family: 'Space Grotesk', sans-serif; letter-spacing: -0.01em;">$${data.amount}</b>
+                </div>
+
+                <!-- Barre de stock -->
+                <div class="d-flex align-items-center gap-2 mt-2">
+                    <div style="flex:1;height:4px;border-radius:3px;background:#e7e1d3;overflow:hidden;box-shadow: inset 0 1px 2px rgba(0,0,0,0.08);">
+                        <div style="height:100%;border-radius:3px;width:${data.qty <= 5 ? '15%' : data.qty <= 9 ? '45%' : '85%'};background:${data.qty <= 5 ? '#B33A3A' : data.qty <= 9 ? '#C9A227' : '#3E6B45'};box-shadow: 0 1px 3px rgba(0,0,0,0.15);"></div>
+                    </div>
+                    <span style="font-size:9.5px;color:#5A625F;white-space:nowrap;">${data.qty} left</span>
                 </div>
             </div>
         </div>
@@ -700,8 +703,9 @@ if (data.qty <= 5) {
 		function add_item_from_index(index) {
     // 1. Vérifier si le produit est déjà en rupture avant même de commencer
     if(PRODUCTS[index].qty <= 0) {
-        alert("Désolé, ce produit est en rupture de stock !");
-        return;
+
+        show_toast("error", "Out of Stock", "Sorry, this product is currently unavailable.");
+		return;
     }
 
     // 2. Vérifier si l'article existe déjà dans le panier (ITEMS)
@@ -762,24 +766,18 @@ if (data.qty <= 5) {
 
 	function clear_all()
 	{
-
-		if(!confirm("Etes vous sure de vouloir supprimer les produits du pannier??!!"))
-			return;
-
-		ITEMS = [];
-		refresh_items_display();
-
+	    show_confirm("Are you sure you want to remove the products from the cart ?", function(){
+	        ITEMS = [];
+	        refresh_items_display();
+	    });
 	}
 	
 	function clear_item(index)
 	{
-
-		if(!confirm("Remove item??!!"))
-			return;
-
-		ITEMS.splice(index,1);
-		refresh_items_display();
-
+	    show_confirm("Remove this item?", function(){
+	        ITEMS.splice(index,1);
+	        refresh_items_display();
+	    });
 	}
 
 	function change_qty(direction,e)
@@ -1400,6 +1398,37 @@ function request_points_otp()
 
     var modal = new bootstrap.Modal(document.getElementById('printOrderModal'));
     modal.show();
+}
+function show_center_notification(message)
+{
+    var existing = document.getElementById('centerNotif');
+    if(existing) existing.remove();
+
+    var div = document.createElement('div');
+    div.id = 'centerNotif';
+    div.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: #fff;
+        border-radius: 12px;
+        padding: 24px 32px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        z-index: 2000;
+        text-align: center;
+        animation: appear .3s ease;
+    `;
+    div.innerHTML = `
+        <i class="fa fa-triangle-exclamation" style="font-size:32px;color:#B33A3A;margin-bottom:10px;display:block;"></i>
+        <div style="font-size:15px;color:#16211F;font-weight:600;">${message}</div>
+    `;
+    document.body.appendChild(div);
+
+    setTimeout(function(){
+        div.style.animation = "disappear .3s ease";
+        setTimeout(function(){ div.remove(); }, 300);
+    }, 2200);
 }
 
 
