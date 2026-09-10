@@ -236,7 +236,7 @@ Swal.fire({
 	<h2>Total sales : $<?=number_format($sales_total,2)?></h2>
 	<table class="table table-striped table-hover">
 		<tr>
-			<th>Barcode</th><th>Facture No</th><th>Details</th><th>Qty</th><th>U Price</th><th>Total to paid</th><th>Total paid</th><th>Balance</th><th>Point amount</th><th>Caissier</th><th>Date sales</th>
+			<th>Barcode</th><th>Facture No</th><th>Details</th><th>Qty</th><th>U Price</th><th>Total to paid</th><th>Total paid</th><th>Balance</th><th>Point amount</th><th>Promos</th><th>Caissier</th><th>Date sales</th>
 			<th>
                 <div class="d-flex gap-2">
                     <a href="index.php?pg=home" class="btn btn-primary btn-sm">
@@ -290,6 +290,15 @@ Swal.fire({
             <?php if($sale['points_amount'] > 0):?>
                 <span class="badge bg-warning text-dark">
                     <i class="fa fa-star"></i> $<?=number_format($sale['points_amount'],2)?>
+                </span>
+            <?php else:?>
+                <span class="text-muted">-</span>
+            <?php endif;?>
+        </td>
+        <td>
+            <?php if($sale['promo_savings'] > 0):?>
+                <span class="badge" style="background:#fdecea;color:#B33A3A;font-size:11px;">
+                    <i class="fa fa-tag"></i> Promo −$<?=number_format($sale['promo_savings'],2)?>
                 </span>
             <?php else:?>
                 <span class="text-muted">-</span>

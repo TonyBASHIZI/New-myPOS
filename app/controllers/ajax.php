@@ -13,29 +13,47 @@ if(!empty($raw_data))
 	{
 		/** RECHERCHE PRODUIT **/
 		if($OBJ['data_type'] == "search")
-		{
-			$productClass = new Product();
-			if(!empty($OBJ['text']))
-			{
-				$barcode = $OBJ['text'];
-				$text = "%".$OBJ['text']."%";
-				$query = "select * from products where description like :find || barcode = :barcode order by id desc";
-				$rows = $productClass->query($query,['find'=>$text,'barcode'=>$barcode]);
-			}else{
-				$rows = $productClass->getAll();
-			}
-			
-			if($rows){
-				foreach ($rows as $key => $row) {
-					$rows[$key]['description'] = strtoupper($row['description']);
-					$rows[$key]['image'] = crop($row['image']);
-					
-				}
-				$info['data_type'] = "search";
-				$info['data'] = $rows;
-				echo json_encode($info);
-			}
-		}
+{
+    $productClass = new Product();
+    if(!empty($OBJ['text']))
+    {
+        $barcode = $OBJ['text'];
+        $text = "%".$OBJ['text']."%";
+        $query = "select * from products where description like :find || barcode = :barcode order by id desc";
+        $rows = $productClass->query($query,['find'=>$text,'barcode'=>$barcode]);
+    }else{
+        $rows = $productClass->getAll();
+    }
+
+    if($rows){
+        $db = new Database(); // NEW - needed for the promo lookup below
+
+        foreach ($rows as $key => $row) {
+            $rows[$key]['description'] = strtoupper($row['description']);
+            $rows[$key]['image'] = crop($row['image']);
+
+            // NEW — check for a live promo on this product
+            $promo = $db->query("
+                SELECT promo_price FROM promos
+                WHERE product_id = :id AND active = 1
+                AND start_date <= CURDATE() AND end_date >= CURDATE()
+                ORDER BY id DESC LIMIT 1
+            ", ['id' => $row['id']]);
+
+            if(is_array($promo) && count($promo) > 0)
+            {
+                $rows[$key]['regular_amount'] = $row['amount'];
+                $rows[$key]['amount'] = $promo[0]['promo_price'];
+                $rows[$key]['on_promo'] = true;
+            }else{
+                $rows[$key]['on_promo'] = false;
+            }
+        }
+        $info['data_type'] = "search";
+        $info['data'] = $rows;
+        echo json_encode($info);
+    }
+}
 
 		/** CHECKOUT (VENTE NORMALE) **/
 		elseif($OBJ['data_type'] == "checkout")
@@ -73,32 +91,54 @@ if(!empty($raw_data))
     foreach ($data as $row) {
         $query = "select * from products where id = :id limit 1";
         $check = $db->query($query,['id'=>$row['id']]);
-        if(is_array($check))
-        {
-            $check = $check[0];
-            $qty = $row['qty'];
-            $line_total = $qty * $check['amount'];
-            $grand_total += $line_total;
+		if(is_array($check))
+		{
+		    $check = $check[0];
+		    $qty = $row['qty'];
 
-            $arr = [];
-            $arr['barcode']        = $check['barcode'];
-            $arr['description']    = $check['description'];
-            $arr['amount']         = $check['amount'];
-            $arr['qty']            = $qty;
-            $arr['total']          = $line_total;
-            $arr['receipt_no']     = $receipt_no;
-            $arr['date']           = $final_date;
-            $arr['user_id']        = $user_id;
-            $arr['balance']        = $balance;
-            $arr['payment_method'] = $payment_method;
-            $arr['points_amount']  = $first_item ? $points_amount : 0;
-            $first_item = false;
+		    // NEW — check for a live promo on this product, same logic as search
+		    $unit_price = $check['amount'];
+		    $promo_savings = 0;
 
-            $query = "insert into sales (barcode,receipt_no,description,qty,amount,total,date,user_id,balance,payment_method,points_amount) values (:barcode,:receipt_no,:description,:qty,:amount,:total,:date,:user_id,:balance,:payment_method,:points_amount)";
-            $db->query($query,$arr);
-            $db->query("update products set views = views + 1 where id = :id limit 1",['id'=>$check['id']]);
-            $db->query("UPDATE products SET qty = qty - :qty WHERE id = :id LIMIT 1",['qty'=>$qty, 'id'=>$check['id']]);
-        }
+		    $promo_check = $db->query("
+		        SELECT promo_price FROM promos
+		        WHERE product_id = :id AND active = 1
+		        AND start_date <= CURDATE() AND end_date >= CURDATE()
+		        ORDER BY id DESC LIMIT 1
+		    ", ['id' => $check['id']]);
+
+
+		    if(is_array($promo_check) && count($promo_check) > 0)
+		    {
+		        $promo_price = $promo_check[0]['promo_price'];
+		        $promo_savings = ($check['amount'] - $promo_price) * $qty;
+		        $unit_price = $promo_price;
+		    }
+
+		    $line_total = $qty * $unit_price;
+		    $grand_total += $line_total;
+
+		    $arr = [];
+		    $arr['barcode']        = $check['barcode'];
+		    $arr['description']    = $check['description'];
+		    $arr['amount']         = $unit_price;
+		    $arr['qty']            = $qty;
+		    $arr['total']          = $line_total;
+		    $arr['receipt_no']     = $receipt_no;
+		    $arr['date']           = $final_date;
+		    $arr['user_id']        = $user_id;
+		    $arr['balance']        = $balance;
+		    $arr['payment_method'] = $payment_method;
+		    $arr['points_amount']  = $first_item ? $points_amount : 0;
+		    $arr['customer_phone'] = isset($OBJ['customer_phone']) ? $OBJ['customer_phone'] : null;
+		    $arr['promo_savings']  = $promo_savings;
+		    $first_item = false;
+
+		    $query = "insert into sales (barcode,receipt_no,description,qty,amount,total,date,user_id,balance,payment_method,points_amount,customer_phone,promo_savings) values (:barcode,:receipt_no,:description,:qty,:amount,:total,:date,:user_id,:balance,:payment_method,:points_amount,:customer_phone,:promo_savings)";
+		    $db->query($query,$arr);
+		    $db->query("update products set views = views + 1 where id = :id limit 1",['id'=>$check['id']]);
+		    $db->query("UPDATE products SET qty = qty - :qty WHERE id = :id LIMIT 1",['qty'=>$qty, 'id'=>$check['id']]);
+		}
     }
 
     if(!empty($OBJ['customer_phone']))
@@ -672,6 +712,62 @@ elseif($OBJ['data_type'] == "transfer_stock")
     $info['success'] = true;
     $info['amount_covered'] = $otp['amount_covered'];
     $info['points_to_use'] = $otp['points_to_use'];
+    echo json_encode($info);
+    die();
+}elseif($OBJ['data_type'] == "create_promo")
+{
+    $product_id = $OBJ['product_id'];
+    $promo_price = (float)$OBJ['promo_price'];
+    $start_date = $OBJ['start_date'];
+    $end_date = $OBJ['end_date'];
+    $user_id = auth("id");
+    $db = new Database();
+
+    $product = $db->query("SELECT amount FROM products WHERE id = :id LIMIT 1", ['id' => $product_id]);
+    if(!is_array($product) || count($product) == 0)
+    {
+        $info['success'] = false;
+        $info['message'] = "Product not found";
+        echo json_encode($info);
+        die();
+    }
+    $regular_price = $product[0]['amount'];
+
+    $promo_model = new Promo();
+    $data = [
+        'product_id' => $product_id,
+        'regular_price' => $regular_price,
+        'promo_price' => $promo_price,
+        'start_date' => $start_date,
+        'end_date' => $end_date,
+        'active' => 1,
+        'created_by' => $user_id
+    ];
+
+    $errors = $promo_model->validate($data);
+    if(count($errors) > 0)
+    {
+        $info['success'] = false;
+        $info['message'] = implode(", ", $errors);
+        echo json_encode($info);
+        die();
+    }
+
+    $promo_model->insert($data);
+
+    $info['success'] = true;
+    $info['message'] = "Promo created";
+    echo json_encode($info);
+    die();
+}elseif($OBJ['data_type'] == "delete_promo")
+{
+    $id = $OBJ['id'];
+    $db = new Database();
+
+    $db->query("DELETE FROM promos WHERE id = :id", ['id' => $id]);
+
+    $info['success'] = true;
+    $info['message'] = "Promo deleted";
     echo json_encode($info);
     die();
 }

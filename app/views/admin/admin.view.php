@@ -45,7 +45,14 @@
                     onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
                     onmouseout="this.style.backgroundColor=''; this.style.color='';"><i class="fa fa-box"></i> Products</li>
 				</a>
-					<a href="index.php?pg=admin&tab=inventory">
+				<a href="index.php?pg=admin&tab=promos">
+				    <li class="list-group-item <?=$tab=='promos'?'active':''?>" class="nav-item"
+				    style="border-radius:8px;"
+				    onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
+				    onmouseout="this.style.backgroundColor=''; this.style.color='';"><i class="fa fa-percent"></i> Promos</li>
+				</a>
+								
+				<a href="index.php?pg=admin&tab=inventory">
 			  		<li class="list-group-item <?=$tab=='inventory'?'active':''?>" class="nav-item"
                     style="border-radius:8px;"
                     onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
@@ -169,6 +176,10 @@
 					case 'products':
 						// code...
 						require views_path('admin/products');
+						break;
+					case 'promos':
+						
+						require views_path('admin/promos');
 						break;
 					Case 'categories':
 

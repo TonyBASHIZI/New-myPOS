@@ -716,6 +716,20 @@ else if($tab == "stock"){
         $grand_total += $item['total'];
         $points_amount_total += $item['points_amount'];
     }
+}
+else if($tab == "promos"){
+    $db = new Database();
+
+    $products = $db->query("SELECT id, description, barcode, amount FROM products ORDER BY description ASC");
+    if(!is_array($products)) $products = [];
+
+    $promos = $db->query("
+        SELECT pr.*, p.description, p.barcode
+        FROM promos pr
+        LEFT JOIN products p ON p.id = pr.product_id
+        ORDER BY pr.created_at DESC
+    ");
+    if(!is_array($promos)) $promos = [];
 
     
 }

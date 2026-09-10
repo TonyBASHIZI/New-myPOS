@@ -640,7 +640,15 @@ if (data.qty <= 5) {
 }
 
 
-   return `
+   // 3. Logique du prix (promo ou normal)
+    var priceHtml = data.on_promo
+    ? `<div style="line-height:1.1;">
+         <div style="text-decoration:line-through;color:#adb5bd;font-size:11px;">$${data.regular_amount}</div>
+         <b style="font-size:20px; font-family: 'Space Grotesk', sans-serif; letter-spacing:-0.01em; color:#B33A3A;">$${data.amount}</b>
+       </div>`
+    : `<b style="font-size:19px; font-family: 'Space Grotesk', sans-serif; letter-spacing:-0.01em;">$${data.amount}</b>`;
+
+    return `
         <!--card-->
         <div class="card m-2 border-0 mx-auto shadow-sm" style="min-width: 190px; max-width: 190px; position: relative;">
             <a href="#">
@@ -652,10 +660,12 @@ if (data.qty <= 5) {
                 Shop ${shopID}
             </span>
 
+            ${data.on_promo ? `<span class="badge bg-danger position-absolute" style="top: 8px; left: 8px; font-size: 10px; z-index: 10;"><i class="fa fa-tag"></i> PROMO</span>` : ''}
+
             <div class="p-2">
                 <div style="font-size: 14px; font-weight: 500; line-height: 1.35; height: 38px; overflow: hidden; color: #000; font-style: italic;">${data.description}</div>
                 <div class="d-flex justify-content-between align-items-center mt-2">
-                    <b style="font-size:19px; font-family: 'Space Grotesk', sans-serif; letter-spacing: -0.01em;">$${data.amount}</b>
+                    ${priceHtml}
                 </div>
 
                 <!-- Barre de stock -->
