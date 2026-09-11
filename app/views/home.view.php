@@ -21,7 +21,7 @@ require views_path('partials/header');
 	</style>
 	<style>
 		.checkout-modal-box {
-		    width: 440px;
+		    width: 95%;
 		    background: #fff;
 		    border-radius: 14px;
 		    padding: 0;
@@ -157,8 +157,8 @@ require views_path('partials/header');
     </div>
   </div>
 </div>
-<div class="d-flex">
-		<div style="min-height:600px;" class="shadow-sm col-7 p-4">
+<div class="d-flex flex-column flex-lg-row">
+		<div style="min-height:600px;" class="shadow-sm col-12 col-lg-7 p-4">
 			
 			<div class="input-group mb-3"><h3> Products </h3>
 			  <input onkeyup="check_for_enter_key(event)" oninput="search_item(event)" type="text" class="ms-4 form-control js-search" placeholder="Search" aria-label="Search" aria-describedby="basic-addon1" autofocus>
@@ -172,7 +172,7 @@ require views_path('partials/header');
 		</div>
 		
 
-		<div class="col-5 bg-light p-4 pt-2">
+		<div class="col-12 col-lg-5 bg-light p-4 pt-2">
 			
 			<div><center><h3>Cart <div class="js-item-count badge bg-primary rounded-circle">0</div></h3></center></div>
 			
@@ -656,7 +656,7 @@ if (data.qty <= 5) {
 
     return `
         <!--card-->
-        <div class="card m-2 border-0 mx-auto shadow-sm" style="min-width: 190px; max-width: 190px; position: relative;">
+        <div class="card m-2 border-0 mx-auto shadow-sm" style="width: 100%; max-width: 190px; min-width: 140px; position: relative;">
             <a href="#">
                 <img index="${index}" src="${data.image}" class="w-100 rounded border shadow-sm">
             </a>
