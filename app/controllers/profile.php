@@ -1,5 +1,8 @@
 <?php 
 
+require_login();
+
+
 $errors = [];
 $user = new User();
 

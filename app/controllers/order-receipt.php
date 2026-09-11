@@ -1,5 +1,7 @@
 <?php
 
+require_login();
+
 $db = new Database();
 $order_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 

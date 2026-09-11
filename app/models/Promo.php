@@ -1,6 +1,6 @@
 <?php  
 
-
+var_dump($_SESSION['USER'] );
 class Promo extends Model
 {
     protected $table = "promos";
@@ -19,7 +19,7 @@ class Promo extends Model
 
         if(isset($data['regular_price']) && $data['promo_price'] >= $data['regular_price'])
             $errors[] = "Promo price must be lower than the regular price";
-        
+
         if(empty($data['start_date']) || empty($data['end_date']))
             $errors[] = "Start and end date are required";
 

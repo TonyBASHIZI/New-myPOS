@@ -1,5 +1,7 @@
 <?php 
 
+require_login();
+
 $errors = [];
 $id = $_GET['id'] ?? null;
 $sale = new Sale();

@@ -65,7 +65,13 @@ function authenticate($row)
 
 	$_SESSION['USER'] = $row;
 }
-
+function require_login()
+{
+    if(empty($_SESSION['USER']))
+    {
+        redirect('login');
+    }
+}
 function auth($column)
 {
 	if(!empty($_SESSION['USER'][$column])){
@@ -73,6 +79,7 @@ function auth($column)
 	}
 
 	return "Unknown";
+	
 }
 
 function crop($filename,$size = 400,$type = 'product')

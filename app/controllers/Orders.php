@@ -1,5 +1,7 @@
 <?php
 
+require_login(); 
+
 defined("ABSPATH") or die();
 
 class Orders

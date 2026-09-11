@@ -1,5 +1,7 @@
 <?php
 
+require_login();
+
 $db = new Database();
 $receipt_no = isset($_GET['id']) ? $_GET['id'] : '';
 

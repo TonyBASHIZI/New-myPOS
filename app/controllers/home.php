@@ -1,5 +1,6 @@
 <?php 
 
+require_login();
 defined("ABSPATH") ? "":die();
 
 // if(Auth::access('cashier')){

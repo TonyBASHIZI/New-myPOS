@@ -1,4 +1,8 @@
-<?php require views_path('partials/header');?>
+<?php 
+
+require views_path('partials/header');
+
+?>
 
 <div style="color:#444">
 	<center class="p-2"><h4><i class="fa fa-user-shield"></i> Admin</h4></center>

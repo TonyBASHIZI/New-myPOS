@@ -1,5 +1,7 @@
 <?php 
 
+require_login();
+
 $errors = [];
 $success = false;
 
