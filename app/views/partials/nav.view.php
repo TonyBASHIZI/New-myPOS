@@ -234,7 +234,7 @@
 
         <div class="notif-dropdown-header" style="border-top:1px solid #eee;">Products</div>
 
-        <a href="index.php?pg=admin&tab=products" class="notif-item">
+        <a href="index.php?pg=admin&tab=expiring-products" class="notif-item">
             <div class="label">
                 <span class="dot" style="background:#B33A3A;"></span>Expiring Soon
             </div>

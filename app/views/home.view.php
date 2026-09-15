@@ -608,6 +608,16 @@ window.onload = function() {
                 
                 return false; // Bloque la validation
             }
+             // NEW — expiry check
+            if(productInStock.expire_date)
+            {
+                var today = new Date().toISOString().split('T')[0];
+                if(productInStock.expire_date < today)
+                {
+                    show_toast("error", "Expired Product", "'" + ITEMS[i].description + "' has expired (" + productInStock.expire_date + "). Remove it from the cart.");
+                    return false;
+                }
+            }
         }
     }
     
@@ -723,6 +733,16 @@ if (data.qty <= 5) {
         show_toast("error", "Out of Stock", "Sorry, this product is currently unavailable.");
 		return;
     }
+    // NEW — expiry check at add time
+    if(PRODUCTS[index].expire_date)
+    {
+        var today = new Date().toISOString().split('T')[0];
+        if(PRODUCTS[index].expire_date < today)
+        {
+            show_toast("error", "Expired Product", "This product has expired and cannot be sold.");
+            return;
+        }
+    }
 
     // 2. Vérifier si l'article existe déjà dans le panier (ITEMS)
     for (var i = ITEMS.length - 1; i >= 0; i--) {
@@ -738,6 +758,8 @@ if (data.qty <= 5) {
             refresh_items_display();
             return;
         }
+
+
     }
 
     // 3. Si c'est un nouvel ajout dans le panier

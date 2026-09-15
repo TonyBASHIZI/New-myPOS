@@ -106,7 +106,8 @@ require views_path('partials/header');
 				    <li class="list-group-item <?=$tab=='expiring-products'?'active':''?>" class="nav-item"
 				    style="border-radius:8px;"
 				    onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
-				    onmouseout="this.style.backgroundColor=''; this.style.color='';"><i class="fa fa-triangle-exclamation"></i> Expiring Soon</li>
+				    onmouseout="this.style.backgroundColor=''; this.style.color='';">
+				    <i class="fa fa-exclamation-triangle"></i> Expiring Soon</li>
 				</a>
 				<a href="index.php?pg=admin&tab=depense">
 			  		<li class="list-group-item <?=$tab=='depense'?'active':''?>" class="nav-item"
