@@ -17,6 +17,8 @@ class Product extends Model
 				'qty',
 				'qty_old',
 				'amount',
+				'purchase_price',
+				'expire_date',
 				'image',
 				'date',
 				'views',

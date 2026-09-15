@@ -55,6 +55,15 @@
 					<small class="text-danger"><?=$errors['amount']?></small>
 				<?php endif;?>
 				<br>
+
+			<div class="mb-3">
+			    <label class="form-label small text-muted">Purchase Price (optional)</label>
+			    <input name="purchase_price" value="<?=set_value('purchase_price',$row['purchase_price'])?>" type="number" step="0.01" class="form-control <?=!empty($errors['purchase_price']) ? 'border-danger':''?>" placeholder="Purchase Price" aria-label="Purchase Price" >
+			</div>
+			<div class="mb-3">
+			    <label class="form-label small text-muted">Expiry Date (optional)</label>
+			    <input name="expire_date" value="<?=set_value('expire_date',$row['expire_date'])?>" type="date" class="form-control <?=!empty($errors['expire_date']) ? 'border-danger':''?>" placeholder="Expiry Date" aria-label="Expiry Date" >
+			</div>
 			<div class="mb-3">
 			  <label for="formFile" class="form-label">Product Image</label>
 			  <input name="image" class="form-control <?=!empty($errors['image']) ? 'border-danger':''?>" type="file" id="formFile">

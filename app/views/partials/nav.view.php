@@ -87,6 +87,15 @@
 		$totalPendingOrders = is_array($pending_orders) ? $pending_orders[0]['total'] : 0;
 		$amountPendingOrders = is_array($pending_orders) ? $pending_orders[0]['amount'] : 0;
 
+        // NEW — products expiring within 30 days
+        $expiring_soon = $db->query("
+            SELECT COUNT(*) as total FROM products
+            WHERE expire_date IS NOT NULL
+            AND expire_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+            AND expire_date >= CURDATE()
+        ");
+        $totalExpiringSoon = is_array($expiring_soon) ? $expiring_soon[0]['total'] : 0;
+
 		$approved_orders = $db->query("SELECT COUNT(*) as total, COALESCE(SUM(total),0) as amount FROM orders WHERE status = 'Approved'");
 		$totalApprovedOrders = is_array($approved_orders) ? $approved_orders[0]['total'] : 0;
 		$amountApprovedOrders = is_array($approved_orders) ? $approved_orders[0]['amount'] : 0;
@@ -191,39 +200,49 @@
 	      <form class="d-flex align-items-center">
 
     <div class="notif-bell-wrapper">
-        <button type="button" class="notif-bell-btn" onclick="toggle_notif_dropdown(event)">
-            <i class="fa fa-bell"></i>
-            <?php $notif_total = $totalPendingOrders; ?>
-            <?php if($notif_total > 0):?>
-            <span class="notif-badge"><?=$notif_total?></span>
-            <?php endif;?>
-        </button>
+    <button type="button" class="notif-bell-btn" onclick="toggle_notif_dropdown(event)">
+        <i class="fa fa-bell"></i>
+        <?php $notif_total = $totalPendingOrders + $totalExpiringSoon; ?>
+        <?php if($notif_total > 0):?>
+        <span class="notif-badge"><?=$notif_total?></span>
+        <?php endif;?>
+    </button>
 
-        <div class="notif-dropdown" id="notifDropdown" style="display:none;">
-            <div class="notif-dropdown-header">Orders Overview</div>
+    <div class="notif-dropdown" id="notifDropdown" style="display:none;">
+        <div class="notif-dropdown-header">Orders Overview</div>
 
-            <a href="index.php?pg=admin&tab=orders" class="notif-item">
-                <div class="label">
-                    <span class="dot" style="background:#f39c12;"></span>Pending
-                </div>
-                <div class="count"><?=$totalPendingOrders?></div>
-            </a>
+        <a href="index.php?pg=admin&tab=orders" class="notif-item">
+            <div class="label">
+                <span class="dot" style="background:#f39c12;"></span>Pending
+            </div>
+            <div class="count"><?=$totalPendingOrders?></div>
+        </a>
 
-            <a href="index.php?pg=admin&tab=orders" class="notif-item">
-                <div class="label">
-                    <span class="dot" style="background:#28a745;"></span>Approved
-                </div>
-                <div class="count"><?=$totalApprovedOrders?></div>
-            </a>
+        <a href="index.php?pg=admin&tab=orders" class="notif-item">
+            <div class="label">
+                <span class="dot" style="background:#28a745;"></span>Approved
+            </div>
+            <div class="count"><?=$totalApprovedOrders?></div>
+        </a>
 
-            <a href="index.php?pg=admin&tab=orders" class="notif-item">
-                <div class="label">
-                    <span class="dot" style="background:#3498db;"></span>Today
-                </div>
-                <div class="count"><?=$totalTodayOrders?></div>
-            </a>
-        </div>
+        <a href="index.php?pg=admin&tab=orders" class="notif-item">
+            <div class="label">
+                <span class="dot" style="background:#3498db;"></span>Today
+            </div>
+            <div class="count"><?=$totalTodayOrders?></div>
+        </a>
+
+        <div class="notif-dropdown-header" style="border-top:1px solid #eee;">Products</div>
+
+        <a href="index.php?pg=admin&tab=products" class="notif-item">
+            <div class="label">
+                <span class="dot" style="background:#B33A3A;"></span>Expiring Soon
+            </div>
+            <div class="count"><?=$totalExpiringSoon?></div>
+        </a>
+
     </div>
+</div>
 
     <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
     <button class="btn btn-outline-success" type="submit">Search</button>

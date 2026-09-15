@@ -59,7 +59,7 @@
 	<table class="table table-striped table-hover" id="tableBody">
 	   <tbody>
 		<tr>
-			<th>Barcode</th><th>Lot</th><th>Shop</th><th>Product</th><th>Old_Qty</th><th>Qty</th><th>Price</th><th>Total net</th><th>Image</th><th>Date</th>
+			<th>Barcode</th><th>Lot</th><th>Shop</th><th>Product</th><th>Old_Qty</th><th>Qty</th><th>Price</th><th>Total net</th><th>Profits</th><th>Expire</th><th>Image</th><th>Date</th>
 			<th>
 				<a href="index.php?pg=product-new">
 					<button class="btn btn-primary btn-sm">
@@ -84,6 +84,34 @@
 				<td style="font-weight: bold;"><?=esc($product['qty'])?></td>
 				<td style="font-weight: bold;"><?=esc($product['amount'])?>$</td>
 				<td style="font-weight: bold;"><?=esc($product['amount']) * esc($product['qty'])?>$</td>
+                <td>
+                    <?php if(!empty($product['purchase_price']) && $product['purchase_price'] > 0):
+                        $margin = $product['amount'] - $product['purchase_price'];
+                    ?>
+                        <span class="<?=$margin >= 0 ? 'text-success' : 'text-danger'?> fw-bold">
+                            $<?=number_format($margin,2)?>
+                        </span>
+                    <?php else:?>
+                        <span class="text-muted">-</span>
+                    <?php endif;?>
+                </td>
+                <td>
+                    <?php if(!empty($product['expire_date'])):
+                        $days_left = (strtotime($product['expire_date']) - strtotime(date('Y-m-d'))) / 86400;
+                    ?>
+                        <?php if($days_left < 0):?>
+                            <span class="badge bg-dark">Expired</span>
+                        <?php elseif($days_left <= 7):?>
+                            <span class="badge bg-danger">Expires in <?=(int)$days_left?>d</span>
+                        <?php elseif($days_left <= 30):?>
+                            <span class="badge bg-warning text-dark">Expires <?=date('d M', strtotime($product['expire_date']))?></span>
+                        <?php else:?>
+                            <span class="text-muted small"><?=date('d M Y', strtotime($product['expire_date']))?></span>
+                        <?php endif;?>
+                    <?php else:?>
+                        <span class="text-muted">-</span>
+                    <?php endif;?>
+                </td>
 				<td>
 					<img src="<?=crop($product['image'])?>" style="width: 100%;max-width:100px;" >
 				</td>

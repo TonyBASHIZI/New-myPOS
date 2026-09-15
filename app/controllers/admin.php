@@ -647,6 +647,9 @@ else if($tab == "stock"){
         $qty_received = isset($received_map[$p['id']]) ? $received_map[$p['id']] : 0;
         $qty_sold     = isset($sold_map[$p['barcode']]) ? $sold_map[$p['barcode']] : 0;
         $total_net    = $p['qty'] * $p['amount'];
+        $purchase_price = $p['purchase_price'] ?? 0;
+		$profit_per_unit = $purchase_price > 0 ? ($p['amount'] - $purchase_price) : null;
+		$total_profit = $profit_per_unit !== null ? ($profit_per_unit * $p['qty']) : null;
 
         $inventory[] = [
             'product_id'    => $p['id'],
@@ -657,12 +660,15 @@ else if($tab == "stock"){
             'qty_received'  => $qty_received,
             'qty_sold'      => $qty_sold,
             'total_net'     => $total_net,
+             'purchase_price' => $purchase_price,
+   			 'total_profit' => $total_profit,
         ];
 
         $totals['qty_received']  += $qty_received;
         $totals['qty_sold']      += $qty_sold;
         $totals['current_stock'] += $p['qty'];
         $totals['total_net']     += $total_net;
+        $totals['total_profit'] = ($totals['total_profit'] ?? 0) + ($row['total_profit'] ?? 0);
     }
 
 }else if($tab == "cash_closing"){
@@ -729,7 +735,20 @@ else if($tab == "promos"){
         LEFT JOIN products p ON p.id = pr.product_id
         ORDER BY pr.created_at DESC
     ");
-    if(!is_array($promos)) $promos = [];
+    if(!is_array($promos)) $promos = [];  
+
+}else if($tab == "expiring-products"){
+    $db = new Database();
+
+    $products = $db->query("
+        SELECT id, barcode, description, amount, purchase_price, qty, expire_date
+        FROM products
+        WHERE expire_date IS NOT NULL
+        AND expire_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+        AND expire_date >= CURDATE()
+        ORDER BY expire_date ASC
+    ");
+    if(!is_array($products)) $products = [];
 
     
 }
