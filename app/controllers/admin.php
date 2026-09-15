@@ -745,7 +745,6 @@ else if($tab == "promos"){
         FROM products
         WHERE expire_date IS NOT NULL
         AND expire_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
-        AND expire_date >= CURDATE()
         ORDER BY expire_date ASC
     ");
     if(!is_array($products)) $products = [];

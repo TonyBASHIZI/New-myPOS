@@ -92,7 +92,6 @@
             SELECT COUNT(*) as total FROM products
             WHERE expire_date IS NOT NULL
             AND expire_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
-            AND expire_date >= CURDATE()
         ");
         $totalExpiringSoon = is_array($expiring_soon) ? $expiring_soon[0]['total'] : 0;
 

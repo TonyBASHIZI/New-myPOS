@@ -74,50 +74,50 @@ require views_path('partials/header');
 				<!--</a>-->
 				<a href="index.php?pg=admin&tab=transfert">
 			  		<li class="list-group-item <?=$tab=='transfert'?'active':''?>" class="nav-item"
-                    style="border-radius:8px;"
+                    style="border-radius:8px; padding-bottom: 12px;"
                     onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
                     onmouseout="this.style.backgroundColor=''; this.style.color='';"><i class="fa fa-clipboard-list"></i> Transfert history</li>
 				</a>
 				<a href="index.php?pg=admin&tab=orders">
 			  		<li class="list-group-item <?=$tab=='orders'?'active':''?>" class="nav-item"
-                    style="border-radius:8px;"
+                    style="border-radius:8px; padding-bottom: 12px;"
                     onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
                     onmouseout="this.style.backgroundColor=''; this.style.color='';"><i class="fa fa-shopping-cart"></i> Orders</li>
 				</a>
 				<a href="index.php?pg=admin&tab=sales">
 			  		<li class="list-group-item <?=$tab=='sales'?'active':''?>" class="nav-item"
-                    style="border-radius:8px;"
+                    style="border-radius:8px; padding-bottom: 12px;"
                     onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
                     onmouseout="this.style.backgroundColor=''; this.style.color='';"><i class="fa fa-shopping-cart"></i> Sales</li>
 				</a>
 				<a href="index.php?pg=admin&tab=saleshistorique">
 			  		<li class="list-group-item <?=$tab=='saleshistorique'?'active':''?>" class="nav-item"
-                    style="border-radius:8px;"
+                    style="border-radius:8px; padding-bottom: 12px;"
                     onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
                     onmouseout="this.style.backgroundColor=''; this.style.color='';"><i class="fa fa-shopping-cart"></i> History Sales</li>
 				</a>
 				<a href="index.php?pg=admin&tab=stock">
 			  		<li class="list-group-item <?=$tab=='stock'?'active':''?>" class="nav-item"
-                    style="border-radius:8px;"
+                    style="border-radius:8px; padding-bottom: 12px;"
                     onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
                     onmouseout="this.style.backgroundColor=''; this.style.color='';"><i class="fa fa-exclamation-triangle"></i> Low Stock</li>
 				</a>
 				<a href="index.php?pg=admin&tab=expiring-products">
 				    <li class="list-group-item <?=$tab=='expiring-products'?'active':''?>" class="nav-item"
-				    style="border-radius:8px;"
+				    style="border-radius:8px; padding-bottom: 12px;"
 				    onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
 				    onmouseout="this.style.backgroundColor=''; this.style.color='';">
 				    <i class="fa fa-exclamation-triangle"></i> Expiring Soon</li>
 				</a>
 				<a href="index.php?pg=admin&tab=depense">
 			  		<li class="list-group-item <?=$tab=='depense'?'active':''?>" class="nav-item"
-                    style="border-radius:8px;"
+                    style="border-radius:8px; padding-bottom: 12px;"
                     onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
                     onmouseout="this.style.backgroundColor=''; this.style.color='';"><i class="fa fa-wallet"></i> Expenses</li>
 				</a>
 				<a href="index.php?pg=admin&tab=voirboss">
 			  		<li class="list-group-item <?=$tab=='voirboss'?'active':''?>" class="nav-item"
-                    style="border-radius:8px;"
+                    style="border-radius:8px; padding-bottom: 12px;"
                     onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
                     onmouseout="this.style.backgroundColor=''; this.style.color='';"><i class="fa fa-wallet"></i> Voir Boss</li>
 				</a>
@@ -126,7 +126,7 @@ require views_path('partials/header');
 		<?php if(!Auth::access('admin')):?>
 		<a href="index.php?pg=admin&tab=sales">
 			  		<li class="list-group-item <?=$tab=='sales'?'active':''?>" class="nav-item"
-                    style="border-radius:8px;"
+                    style="border-radius:8px; padding-bottom: 12px;"
                     onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
                     onmouseout="this.style.backgroundColor=''; this.style.color='';"><i class="fa fa-shopping-cart"></i> Sales</li>
 				</a>
@@ -138,7 +138,7 @@ require views_path('partials/header');
 				
 			  	<a href="index.php?pg=logout">
 			  		<li class="list-group-item" class="nav-item"
-                    style="border-radius:8px;"
+                    style="border-radius:8px; padding-bottom: 12px;"
                     onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
                     onmouseout="this.style.backgroundColor=''; this.style.color='';"><i class="fa fa-sign-out-alt"></i> Logout</li>
 				</a>

@@ -627,7 +627,6 @@ window.onload = function() {
 }
 
 function product_html(data, index) {
-    // 1. Logique du Shop
     var shopID = data.shop ? data.shop : "0";
     let badgeColor = "bg-secondary"; 
     
@@ -637,46 +636,56 @@ function product_html(data, index) {
     if(data.shop == 4) badgeColor = "bg-danger";  
     if(data.shop == 5) badgeColor = "bg-info text-dark"; 
 
-    // 2. Logique du Badge de Stock (on définit qtyBadge ici)
-    // Initialisation par défaut (si aucune condition n'est remplie)
-let qtyBadge = "bg-secondary"; 
+    let qtyBadge = "bg-secondary"; 
+    if (data.qty <= 5) {
+        qtyBadge = "bg-danger fw-bold"; 
+    } else if (data.qty >= 1 && data.qty <= 9) {
+        qtyBadge = "bg-warning text-dark fw-bold"; 
+    } else if (data.qty >= 10 && data.qty <= 30) {
+        qtyBadge = "bg-primary"; 
+    } else if (data.qty > 30) {
+        qtyBadge = "bg-success"; 
+    }
 
-if (data.qty <= 5) {
-    // Produits <= 5 en rouge
-    qtyBadge = "bg-danger fw-bold"; 
-} else if (data.qty >= 1 && data.qty <= 9) {
-    // Produits entre 1 et 9 en jaune (Note: le <=5 passera en rouge avant)
-    qtyBadge = "bg-warning text-dark fw-bold"; 
-} else if (data.qty >= 10 && data.qty <= 30) {
-    // Produits >= 10 et <= 30 en bleu
-    qtyBadge = "bg-primary"; 
-} else if (data.qty > 30) {
-    // Produits > 30 en vert
-    qtyBadge = "bg-success"; 
-}
-
-
-   // 3. Logique du prix (promo ou normal)
     var priceHtml = data.on_promo
-    ? `<div style="line-height:1.1;">
-         <div style="text-decoration:line-through;color:#adb5bd;font-size:11px;">$${data.regular_amount}</div>
-         <b style="font-size:20px; font-family: 'Space Grotesk', sans-serif; letter-spacing:-0.01em; color:#B33A3A;">$${data.amount}</b>
-       </div>`
-    : `<b style="font-size:19px; font-family: 'Space Grotesk', sans-serif; letter-spacing:-0.01em;">$${data.amount}</b>`;
+        ? `<div style="line-height:1.1;">
+             <div style="text-decoration:line-through;color:#adb5bd;font-size:11px;">$${data.regular_amount}</div>
+             <b style="font-size:20px; font-family: 'Space Grotesk', sans-serif; letter-spacing:-0.01em; color:#B33A3A;">$${data.amount}</b>
+           </div>`
+        : `<b style="font-size:19px; font-family: 'Space Grotesk', sans-serif; letter-spacing:-0.01em;">$${data.amount}</b>`;
+
+    // NEW — expiry status check
+    var expiryBadge = "";
+    var isExpired = false;
+    if(data.expire_date)
+    {
+        var today = new Date().toISOString().split('T')[0];
+        var daysLeft = Math.floor((new Date(data.expire_date) - new Date(today)) / 86400000);
+
+        if(daysLeft < 0)
+        {
+            isExpired = true;
+            expiryBadge = `<span class="badge bg-dark position-absolute" style="bottom: 8px; left: 8px; font-size: 9.5px; z-index: 10;">EXPIRED</span>`;
+        }else if(daysLeft <= 7)
+        {
+            expiryBadge = `<span class="badge bg-danger position-absolute" style="bottom: 8px; left: 8px; font-size: 9.5px; z-index: 10;">${daysLeft}d LEFT</span>`;
+        }
+    }
 
     return `
         <!--card-->
-        <div class="card m-2 border-0 mx-auto shadow-sm" style="width: 100%; max-width: 190px; min-width: 140px; position: relative;">
-            <a href="#">
+        <div class="card m-2 border-0 mx-auto shadow-sm" style="min-width: 190px; max-width: 190px; position: relative; ${isExpired ? 'opacity: 0.55; filter: grayscale(60%);' : ''}">
+            <a href="#" style="${isExpired ? 'pointer-events: none;' : ''}">
                 <img index="${index}" src="${data.image}" class="w-100 rounded border shadow-sm">
             </a>
 
-            <!-- Badge Shop en haut à droite -->
             <span class="badge ${badgeColor} position-absolute" style="top: 8px; right: 8px; font-size: 11px; z-index: 10;">
                 Shop ${shopID}
             </span>
 
             ${data.on_promo ? `<span class="badge bg-danger position-absolute" style="top: 8px; left: 8px; font-size: 10px; z-index: 10;"><i class="fa fa-tag"></i> PROMO</span>` : ''}
+
+            ${expiryBadge}
 
             <div class="p-2">
                 <div style="font-size: 14px; font-weight: 500; line-height: 1.35; height: 38px; overflow: hidden; color: #000; font-style: italic;">${data.description}</div>
@@ -684,7 +693,6 @@ if (data.qty <= 5) {
                     ${priceHtml}
                 </div>
 
-                <!-- Barre de stock -->
                 <div class="d-flex align-items-center gap-2 mt-2">
                     <div style="flex:1;height:4px;border-radius:3px;background:#e7e1d3;overflow:hidden;box-shadow: inset 0 1px 2px rgba(0,0,0,0.08);">
                         <div style="height:100%;border-radius:3px;width:${data.qty <= 5 ? '15%' : data.qty <= 9 ? '45%' : '85%'};background:${data.qty <= 5 ? '#B33A3A' : data.qty <= 9 ? '#C9A227' : '#3E6B45'};box-shadow: 0 1px 3px rgba(0,0,0,0.15);"></div>
