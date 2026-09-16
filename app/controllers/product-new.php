@@ -12,6 +12,9 @@ if($_SERVER['REQUEST_METHOD'] == "POST")
 	$_POST['date'] = date("Y-m-d H:i:s");
 	$_POST['user_id'] = auth("id");
 	$_POST['barcode'] = empty($_POST['barcode']) ? $product->generate_barcode():$_POST['barcode'];
+
+	// NEW — if no expiry date was given, store NULL instead of an empty string
+	$_POST['expire_date'] = !empty($_POST['expire_date']) ? $_POST['expire_date'] : null;
 	
 	if(!empty($_FILES['image']['name']))
 	{

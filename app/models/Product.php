@@ -65,24 +65,20 @@ class Product extends Model
 			$max_size = 4;//mbs
 			$size = $max_size * (1024 * 1024);
 
-			if(!$id || ($id && !empty($data['image']))){
-
-				if(empty($data['image']))
-				{
-					$errors['image'] = "Product image is required";
-				}else
-				if(!($data['image']['type'] == "image/jpeg" || $data['image']['type'] == "image/png"))
-				{
-					$errors['image'] = "Image must be a valid JPEG or PNG";
-				}else
-				if($data['image']['error'] > 0)
-				{
-					$errors['image'] = "The image failed to upload. Error No.".$data['image']['error'];
-				}else
-				if($data['image']['size'] > $size)
-				{
-					$errors['image'] = "The image size must be lower than ".$max_size."Mb";
-				}
+			if(!empty($data['image']) && $data['image']['error'] != UPLOAD_ERR_NO_FILE)
+			{
+			    if(!($data['image']['type'] == "image/jpeg" || $data['image']['type'] == "image/png"))
+			    {
+			        $errors['image'] = "Image must be a valid JPEG or PNG";
+			    }else
+			    if($data['image']['error'] > 0)
+			    {
+			        $errors['image'] = "The image failed to upload. Error No.".$data['image']['error'];
+			    }else
+			    if($data['image']['size'] > $size)
+			    {
+			        $errors['image'] = "The image size must be lower than ".$max_size."Mb";
+			    }
 			}
 
 			
