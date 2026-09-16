@@ -22,6 +22,7 @@ require views_path('partials/header');
 	<style>
 		.checkout-modal-box {
 		    width: 95%;
+		    max-width: 440px;
 		    background: #fff;
 		    border-radius: 14px;
 		    padding: 0;
@@ -254,6 +255,7 @@ require views_path('partials/header');
 			<select class="form-control js-payment-method">
 			    <option value="Cash">Cash</option>
 			    <option value="Mobile Money">Mobile Money</option>
+			    <option value="Points">Points</option>
 			</select>
 
 			<div class="mt-3 p-3" style="background:#f8f9fa;border-radius:8px;" id="pointsPaySection" style="display:none;">

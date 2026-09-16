@@ -55,10 +55,12 @@
                     <th>Product</th>
                     <th>Barcode</th>
                     <th>Unit Price</th>
+                    <th>Purchase Price</th>
                     <th>Qty Received</th>
                     <th>Qty Sold</th>
                     <th>Current Stock</th>
                     <th>Total Net</th>
+                    <th>Total Profit</th>
                 </tr>
             </thead>
             <tbody>
@@ -68,10 +70,20 @@
                         <td><?=esc($row['description'])?></td>
                         <td class="text-muted"><?=esc($row['barcode'])?></td>
                         <td class="text-muted">$<?=number_format($row['amount'],2)?></td>
+                        <td class="text-muted"><?=!empty($row['purchase_price']) ? '$'.number_format($row['purchase_price'],2) : '-'?></td>
                         <td class="text-success fw-bold"><?=esc($row['qty_received'])?></td>
                         <td class="text-danger fw-bold"><?=esc($row['qty_sold'])?></td>
                         <td class="fw-bold"><?=esc($row['current_stock'])?></td>
                         <td class="fw-bold text-primary">$<?=number_format($row['total_net'],2)?></td>
+                        <td>
+                            <?php if($row['total_profit'] !== null):?>
+                                <span class="<?=$row['total_profit'] >= 0 ? 'text-success' : 'text-danger'?> fw-bold">
+                                    $<?=number_format($row['total_profit'],2)?>
+                                </span>
+                            <?php else:?>
+                                <span class="text-muted">-</span>
+                            <?php endif;?>
+                        </td>
                     </tr>
                     <?php endforeach;?>
                 <?php else:?>
@@ -81,11 +93,12 @@
             <?php if(!empty($inventory)):?>
             <tfoot>
                 <tr style="border-top: 2px solid #000;">
-                    <td colspan="3" class="fw-bold text-end">TOTALS</td>
+                    <td colspan="4" class="fw-bold text-end">TOTALS</td>
                     <td class="fw-bold text-success"><?=esc($totals['qty_received'])?></td>
                     <td class="fw-bold text-danger"><?=esc($totals['qty_sold'])?></td>
                     <td class="fw-bold"><?=esc($totals['current_stock'])?></td>
                     <td class="fw-bold text-primary" style="font-size:15px;">$<?=number_format($totals['total_net'],2)?></td>
+                    <td class="fw-bold text-success" style="font-size:15px;">$<?=number_format($totals['total_profit'],2)?></td>
                 </tr>
             </tfoot>
             <?php endif;?>

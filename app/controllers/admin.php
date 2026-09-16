@@ -407,24 +407,47 @@ if($tab == "transfert")
               ORDER BY trans.id DESC";
               
     $products = $productClass->query($query);
-}else
-if($tab == "saleshistorique")
+}else if($tab == "saleshistorique")
 {
-   $salesClass = new Sale();
+    $date_from = isset($_GET['date_from']) ? trim($_GET['date_from']) : '';
+    $date_to   = isset($_GET['date_to'])   ? trim($_GET['date_to'])   : '';
 
-$where = "";
+    $where = "1=1";
+    $params = [];
 
-if(!empty($_GET['date_from']) && !empty($_GET['date_to']))
-{
-    $from = $_GET['date_from'] . " 00:00:00";
-    $to   = $_GET['date_to'] . " 23:59:59";
+    if(!empty($date_from) && !empty($date_to))
+    {
+        $where .= " AND s.date BETWEEN :date_from AND :date_to";
+        $params['date_from'] = $date_from . " 00:00:00";
+        $params['date_to']   = $date_to . " 23:59:59";
+    }
 
-    $where = " WHERE date BETWEEN '$from' AND '$to' ";
-}
+    $db = new Database();
 
-$query = "SELECT * FROM sales $where ORDER BY id DESC";
+    $query = "
+    SELECT s.*, p.purchase_price, u.username AS cashier_name
+    FROM sales s
+    LEFT JOIN products p ON p.barcode = s.barcode
+    LEFT JOIN users u ON u.id = s.user_id
+    WHERE $where
+    ORDER BY s.id DESC";
+    
+    $allsales = $db->query($query, $params);
+    if(!is_array($allsales)) $allsales = [];
 
-$allsales = $salesClass->query($query);
+    // Profit per row + running total
+    $total_profit = 0;
+    foreach($allsales as &$sale)
+    {
+        if(!empty($sale['purchase_price']) && $sale['purchase_price'] > 0)
+        {
+            $sale['profit'] = ($sale['amount'] - $sale['purchase_price']) * $sale['qty'];
+            $total_profit += $sale['profit'];
+        }else{
+            $sale['profit'] = null;
+        }
+    }
+    unset($sale);
 }else
 if($tab == "productshistorique")
 {
@@ -609,8 +632,8 @@ else if($tab == "stock"){
     $date_from = isset($_GET['date_from']) ? trim($_GET['date_from']) : date('Y-m-01');
     $date_to   = isset($_GET['date_to'])   ? trim($_GET['date_to'])   : date('Y-m-d');
 
-    // 1. All products
-    $products = $db->query("SELECT id, barcode, description, amount, qty FROM products ORDER BY description ASC");
+    // 1. All products — NOW includes purchase_price
+    $products = $db->query("SELECT id, barcode, description, amount, purchase_price, qty FROM products ORDER BY description ASC");
     if(!is_array($products)) $products = [];
 
     // 2. Received totals per product, for this date range
@@ -631,46 +654,46 @@ else if($tab == "stock"){
     ", ['date_from' => $date_from, 'date_to' => $date_to]);
     if(!is_array($sold_rows)) $sold_rows = [];
 
-    // Index received/sold by key for fast lookup while merging
     $received_map = [];
     foreach($received_rows as $r) $received_map[$r['product_id']] = $r['total_received'];
 
     $sold_map = [];
     foreach($sold_rows as $s) $sold_map[$s['barcode']] = $s['total_sold'];
 
-    // Merge into final inventory array
     $inventory = [];
-    $totals = ['qty_received' => 0, 'qty_sold' => 0, 'current_stock' => 0, 'total_net' => 0];
+    $totals = ['qty_received' => 0, 'qty_sold' => 0, 'current_stock' => 0, 'total_net' => 0, 'total_profit' => 0];
 
     foreach($products as $p)
     {
         $qty_received = isset($received_map[$p['id']]) ? $received_map[$p['id']] : 0;
         $qty_sold     = isset($sold_map[$p['barcode']]) ? $sold_map[$p['barcode']] : 0;
         $total_net    = $p['qty'] * $p['amount'];
-        $purchase_price = $p['purchase_price'] ?? 0;
-		$profit_per_unit = $purchase_price > 0 ? ($p['amount'] - $purchase_price) : null;
-		$total_profit = $profit_per_unit !== null ? ($profit_per_unit * $p['qty']) : null;
+
+        $purchase_price  = !empty($p['purchase_price']) ? $p['purchase_price'] : 0;
+        $profit_per_unit = $purchase_price > 0 ? ($p['amount'] - $purchase_price) : null;
+        $total_profit    = $profit_per_unit !== null ? ($profit_per_unit * $p['qty']) : null;
 
         $inventory[] = [
-            'product_id'    => $p['id'],
-            'barcode'       => $p['barcode'],
-            'description'   => $p['description'],
-            'amount'        => $p['amount'],
-            'current_stock' => $p['qty'],
-            'qty_received'  => $qty_received,
-            'qty_sold'      => $qty_sold,
-            'total_net'     => $total_net,
-             'purchase_price' => $purchase_price,
-   			 'total_profit' => $total_profit,
+            'product_id'      => $p['id'],
+            'barcode'         => $p['barcode'],
+            'description'     => $p['description'],
+            'amount'          => $p['amount'],
+            'current_stock'   => $p['qty'],
+            'qty_received'    => $qty_received,
+            'qty_sold'        => $qty_sold,
+            'total_net'       => $total_net,
+            'purchase_price'  => $purchase_price,
+            'total_profit'    => $total_profit,
         ];
 
         $totals['qty_received']  += $qty_received;
         $totals['qty_sold']      += $qty_sold;
         $totals['current_stock'] += $p['qty'];
         $totals['total_net']     += $total_net;
-        $totals['total_profit'] = ($totals['total_profit'] ?? 0) + ($row['total_profit'] ?? 0);
+        $totals['total_profit']  += ($total_profit ?? 0);
     }
 
+   
 }else if($tab == "cash_closing"){
     $db = new Database();
     $user_id = auth("id");

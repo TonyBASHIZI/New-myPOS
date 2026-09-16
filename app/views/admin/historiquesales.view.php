@@ -1,9 +1,19 @@
 <style>
   @media print {
-    .no-print {
-      display: none;
+    table {
+        page-break-inside: auto;
     }
-  }
+    tr {
+        page-break-inside: avoid;
+        page-break-after: auto;
+    }
+    thead {
+        display: table-header-group; /* repeat header on each page - usually desired */
+    }
+    tfoot {
+        display: table-row-group; /* force footer to NOT repeat, treat as normal row */
+    }
+}
 </style>
 
 
@@ -72,6 +82,9 @@
                     <button onclick="functionTablePDF()" class="btn btn-danger ms-2">
                         <i class="fa fa-file-pdf"></i> Exporter en PDF
                     </button>
+                    <button type="button" class="btn btn-sm btn-outline-dark" onclick="export_sales_pdf()">
+                        <i class="fa fa-file-pdf"></i> Print / Export PDF
+                    </button>
                 </div>
 
 </div>
@@ -119,12 +132,9 @@
 
 	<table class="table table-striped table-hover">
 		<tr>
-			<th>Barcode</th><th>Facture No</th><th>Details</th><th>Qty</th><th>U Price</th><th>Total to paid</th><th>Total paid</th><th>Balance</th><th>Points_amount</th><th>Caissier</th><th>Date sales</th>
+			<th>Barcode</th><th>Facture No</th><th>Details</th><th>Qty</th><th>U Price</th><th>Purchase Price</th><th>Total to paid</th><th>Total paid</th><th>Balance</th><th>Points_amount</th><th>Profit</th><th>Caissier</th><th>Date sales</th>
 			
 
-			<th>
-	
-			</th>
 		</tr>
         <tbody>
 		<?php if (!empty($allsales)):?>
@@ -137,6 +147,7 @@
  				</td>
 				<td><?=esc($sale['qty'])?></td>
 				<td><?=esc($sale['amount'])?>$</td>
+                <td class="text-muted"><?=!empty($sale['purchase_price']) ? '$'.number_format($sale['purchase_price'],2) : '-'?></td>
 				<td><?=esc($sale['total'])?>$</td>
                 <td class="text-success fw-bold">
                 $<?= number_format($sale['total'] - $sale['balance'], 2) ?>
@@ -149,29 +160,52 @@
                 <?php endif; ?>
                 </td>
                 <td><?=esc($sale['points_amount'])?>$</td>
-				<?php 
-					$cashier = get_user_by_id($sale['user_id']);
-					if(empty($cashier)){
-						$name = "Unknown";
-						$namelink = "#";
-					}else{
-						$name = $cashier['username'];
-						
-						$namelink = "index.php?pg=profile&id=".$cashier['id'];
-					}
-				?>
+                <td>
+                    <?php if($sale['profit'] !== null):?>
+                        <span class="<?=$sale['profit'] >= 0 ? 'text-success' : 'text-danger'?> fw-bold">
+                            $<?=number_format($sale['profit'],2)?>
+                        </span>
+                    <?php else:?>
+                        <span class="text-muted">-</span>
+                    <?php endif;?>
+                </td>
 				<td>
-					<a href="<?=$namelink?>">
-						<?=esc($name)?>
-					</a>
-				</td>
+                    <a href="index.php?pg=profile&id=<?=$sale['user_id']?>">
+                        <?=esc($sale['cashier_name'] ?: 'Unknown')?>
+                    </a>
+                </td>
 		
 				<td><?=date("jS M, Y",strtotime($sale['date']))?></td>
 				
 			</tr>
 			<?php endforeach;?>
 		<?php endif;?>
-		<tbody>
+		</tbody>
+        <?php
+            $sum_qty = 0;
+            $sum_total = 0;
+            $sum_profit = 0;
+            $sum_points = 0;
+            foreach($allsales as $s)
+            {
+                $sum_qty += $s['qty'];
+                $sum_total += $s['total'];
+                $sum_profit += ($s['profit'] ?? 0);
+                $sum_points += ($s['points_amount'] ?? 0);
+            }
+        ?>
+        
+        <tr style="border-top: 2px solid #000;">
+                <td colspan="X" class="fw-bold text-end">TOTALS</td>
+                <td class="fw-bold"><?=esc($sum_qty)?></td>
+                <td></td><td></td><td></td><td></td><td></td>
+                <td class="fw-bold text-primary">$<?=number_format($sum_total,2)?></td>
+                <td></td>
+                <td class="fw-bold" style="color:#b8860b;">$<?=number_format($sum_points,2)?></td>
+                <td class="fw-bold text-success">$<?=number_format($sum_profit,2)?></td>
+                <td></td><td></td>
+        </tr>
+       
 	</table>
 
 
@@ -234,7 +268,29 @@ function exportTableToExcel() {
     doc.save('sales_export_' + Date.now() + '.pdf');
 }
 
+</script>
+<script>
+function export_sales_pdf()
+{
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('l', 'pt', 'a4');
 
+    doc.setFontSize(14);
+    doc.text("Sales History", 40, 30);
+    doc.setFontSize(9);
+    doc.text("Generated: " + new Date().toLocaleString(), 40, 45);
+
+    doc.autoTable({
+        html: '#tableData table',
+        startY: 55,
+        theme: 'striped',
+        headStyles: { fillColor: [40, 40, 40], textColor: 255, fontSize: 8 },
+        bodyStyles: { fontSize: 8 },
+        margin: { left: 20, right: 20 }
+    });
+
+    doc.save('sales_history_' + Date.now() + '.pdf');
+}
 </script>
 
 
