@@ -10,7 +10,7 @@ require views_path('partials/header');
 	<div class="container-fluid row">
 		<div class="col-12 col-sm-4 col-md-3 col-lg-2">
 			<ul class="list-group">
-				<?php if(Auth::access('admin')):?>
+				<?php if(Auth::access('admin') || Auth::role() == 'supervisor'):?>
 				<a href="index.php?pg=admin&tab=dashboard">
 			  		<li class="list-group-item <?=!$tab || $tab == 'dashboard'?'active':''?>" class="nav-item"
                     style="border-radius:8px;"
@@ -153,6 +153,7 @@ require views_path('partials/header');
 			    switch ($tab) {
 
 			    	case 'expiring-products':
+			    	
 				    require views_path('admin/expiring-products');
 				    	break;
 			    	case 'print_labels':

@@ -64,6 +64,9 @@ class Auth
 		}
 	}
 
-	
+	public static function role()
+	{
+	    return self::get('role');
+	}
 
 }

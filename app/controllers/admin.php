@@ -2,6 +2,23 @@
 
 $tab = $_GET['tab'] ?? 'dashboard';
 
+// Centralized tab access control — runs before any HTML output, admin always has full access
+
+if(!Auth::access('admin'))
+{
+    $myrole = Auth::role();
+
+    $role_allowed_tabs = [
+        'order_agent' => ['orders'],
+        'supervisor'  => ['stock','sales', 'expiring-products', 'print_labels', 'inventory', 'orders', 'voirboss', 'dashboard', 'depense'],
+        'cashier'     => ['home', 'orders', 'sales', 'voirboss', 'depense'],
+    ];
+
+    if(isset($role_allowed_tabs[$myrole]) && !in_array($tab, $role_allowed_tabs[$myrole]))
+    {
+        redirect('access-denied');
+    }
+}
 
 if($tab == "products")
 {
@@ -431,7 +448,7 @@ if($tab == "transfert")
     LEFT JOIN users u ON u.id = s.user_id
     WHERE $where
     ORDER BY s.id DESC";
-    
+
     $allsales = $db->query($query, $params);
     if(!is_array($allsales)) $allsales = [];
 

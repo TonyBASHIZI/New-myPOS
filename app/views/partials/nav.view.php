@@ -120,15 +120,16 @@
                 onmouseout="this.style.backgroundColor=''; this.style.color=''; ">
 	          <a class="nav-link active" aria-current="page" href="index.php?pg=home">Point of sale</a>
 	        </li>
-	         <li class="nav-item" class="nav-item"
-                style="border-radius:8px;"
-                onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
-                onmouseout="this.style.backgroundColor=''; this.style.color=''; ">
-	          <a class="nav-link active" aria-current="page" href="index.php?pg=admin&tab=orders">Orders</a>
-	        </li>
+	        
 
 			<?php if(Auth::access('cashier')): ?>
     <!-- Ceci sera visible par Admin, Supervisor et Cashier -->
+     <li class="nav-item" class="nav-item"
+                style="border-radius:8px;"
+                onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
+                onmouseout="this.style.backgroundColor=''; this.style.color=''; ">
+              <a class="nav-link active" aria-current="page" href="index.php?pg=admin&tab=orders">Orders</a>
+            </li>
     <li class="nav-item" class="nav-item"
     style="border-radius:8px;"
     onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
@@ -164,15 +165,6 @@
     onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
     onmouseout="this.style.backgroundColor=''; this.style.color='';">
 		          <a class="nav-link" href="index.php?pg=admin">Admin</a>
-		        </li>
-		    <?php endif;?>
-
-	        <?php if(Auth::access('admin')):?>
-		        <li class="nav-item" class="nav-item"
-    style="border-radius:8px;"
-    onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
-    onmouseout="this.style.backgroundColor=''; this.style.color='';">
-		          <a class="nav-link" href="index.php?pg=signup">Create user</a>
 		        </li>
 		    <?php endif;?>
 
