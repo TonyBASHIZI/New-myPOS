@@ -1,10 +1,8 @@
-<?php 
+<?php
 
 require_login();
 
 defined("ABSPATH") ? "":die();
 
 
-
-
-require views_path('home');
+require views_path('my-orders');

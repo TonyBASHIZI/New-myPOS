@@ -103,6 +103,93 @@
 		$totalTodayOrders = is_array($today_orders) ? $today_orders[0]['total'] : 0;
 		$amountTodayOrders = is_array($today_orders) ? $today_orders[0]['amount'] : 0;
 
+
+        // my_orders
+        $db = new Database();
+    $my_id = auth("id");
+
+    // Stat cards, scoped to this user only
+    $pending = $db->query("SELECT COUNT(*) as total, COALESCE(SUM(total),0) as amount FROM orders WHERE created_by = :uid AND status = 'Pending'", ['uid' => $my_id]);
+    $myPendingOrders = is_array($pending) ? $pending[0]['total'] : 0;
+    $myPendingAmount = is_array($pending) ? $pending[0]['amount'] : 0;
+
+    $approved = $db->query("SELECT COUNT(*) as total, COALESCE(SUM(total),0) as amount FROM orders WHERE created_by = :uid AND status = 'Approved'", ['uid' => $my_id]);
+    $myApprovedOrders = is_array($approved) ? $approved[0]['total'] : 0;
+    $myApprovedAmount = is_array($approved) ? $approved[0]['amount'] : 0;
+
+    $today = $db->query("SELECT COUNT(*) as total, COALESCE(SUM(total),0) as amount FROM orders WHERE created_by = :uid AND DATE(created_at) = CURDATE()", ['uid' => $my_id]);
+    $myTodayOrders = is_array($today) ? $today[0]['total'] : 0;
+    $myTodayAmount = is_array($today) ? $today[0]['amount'] : 0;
+
+    // Orders list, scoped to this user only
+        $query = "
+        SELECT 
+            o.id AS order_id,
+            o.order_no,
+            o.customer_name,
+            o.customer_phone,
+            o.status,
+            o.total AS order_total,
+            o.created_by,
+            o.ref_user,
+            o.created_at,
+            creator.username AS creator_name,
+            approver.username AS approver_name,
+            oi.id AS order_item_id,
+            oi.qty,
+            oi.price,
+            oi.total AS line_total,
+            p.id AS product_id,
+            p.description,
+            p.barcode,
+            p.image
+        FROM orders o
+        INNER JOIN order_items oi ON oi.order_id = o.id
+        INNER JOIN products p ON p.id = oi.product_id
+        LEFT JOIN users creator ON creator.id = o.created_by
+        LEFT JOIN users approver ON approver.id = o.ref_user
+        WHERE o.created_by = :uid
+        ORDER BY o.created_at DESC, o.id, oi.id
+        ";
+        $rows = $db->query($query, ['uid' => $my_id]);
+
+        $orders = [];
+        if(is_array($rows))
+        {
+            foreach($rows as $row)
+            {
+                $oid = $row['order_id'];
+                if(!isset($orders[$oid]))
+                {
+                    $orders[$oid] = [
+                        'order_id'       => $row['order_id'],
+                        'order_no'       => $row['order_no'],
+                        'customer_name'  => $row['customer_name'],
+                        'customer_phone' => $row['customer_phone'],
+                        'status'         => $row['status'],
+                        'order_total'    => $row['order_total'],
+                        'created_by'     => $row['created_by'],
+                        'creator_name'   => $row['creator_name'],
+                        'ref_user'       => $row['ref_user'],
+                        'approver_name'  => $row['approver_name'],
+                        'created_at'     => $row['created_at'],
+                        'items'          => [],
+                    ];
+                }
+                $orders[$oid]['items'][] = [
+                    'order_item_id' => $row['order_item_id'],
+                    'product_id'    => $row['product_id'],
+                    'description'   => $row['description'],
+                    'barcode'       => $row['barcode'],
+                    'image'         => $row['image'],
+                    'qty'           => $row['qty'],
+                    'price'         => $row['price'],
+                    'line_total'    => $row['line_total'],
+                ];
+            }
+        }
+        $orders = array_values($orders);
+
 ?>
 
 <nav class="navbar navbar-expand-lg navbar-light bg-light" style="min-width:350px">
@@ -120,52 +207,60 @@
                 onmouseout="this.style.backgroundColor=''; this.style.color=''; ">
 	          <a class="nav-link active" aria-current="page" href="index.php?pg=home">Point of sale</a>
 	        </li>
+            <?php if(Auth::access('user')):?>
+            <li class="nav-item" class="nav-item"
+                style="border-radius:8px;"
+                onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
+                onmouseout="this.style.backgroundColor=''; this.style.color='';">
+                <a class="nav-link" href="index.php?pg=my-orders">My Orders</a>
+            </li>
+            <?php endif;?>
 	        
 
 			<?php if(Auth::access('cashier')): ?>
-    <!-- Ceci sera visible par Admin, Supervisor et Cashier -->
-     <li class="nav-item" class="nav-item"
-                style="border-radius:8px;"
-                onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
-                onmouseout="this.style.backgroundColor=''; this.style.color=''; ">
-              <a class="nav-link active" aria-current="page" href="index.php?pg=admin&tab=orders">Orders</a>
+            <!-- Ceci sera visible par Admin, Supervisor et Cashier -->
+             <li class="nav-item" class="nav-item"
+                        style="border-radius:8px;"
+                        onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
+                        onmouseout="this.style.backgroundColor=''; this.style.color=''; ">
+                      <a class="nav-link active" aria-current="page" href="index.php?pg=admin&tab=orders">Orders</a>
+                    </li>
+            <li class="nav-item" class="nav-item"
+            style="border-radius:8px;"
+            onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
+            onmouseout="this.style.backgroundColor=''; this.style.color='';">
+                <a class="nav-link" href="index.php?pg=admin&tab=sales">Sales</a>
             </li>
-    <li class="nav-item" class="nav-item"
-    style="border-radius:8px;"
-    onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
-    onmouseout="this.style.backgroundColor=''; this.style.color='';">
-        <a class="nav-link" href="index.php?pg=admin&tab=sales">Sales</a>
-    </li>
-<?php endif; ?>
+        <?php endif; ?>
 
-<?php if(Auth::access('cashier')): ?>
-    <!-- Ceci sera visible par Admin, Supervisor et Cashier -->
-    <li class="nav-item" class="nav-item"
-    style="border-radius:8px;"
-    onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
-    onmouseout="this.style.backgroundColor=''; this.style.color='';">
-        <a class="nav-link" href="index.php?pg=admin&tab=voirboss">Voir boss</a>
-    </li>
-<?php endif; ?>
+        <?php if(Auth::access('cashier')): ?>
+            <!-- Ceci sera visible par Admin, Supervisor et Cashier -->
+            <li class="nav-item" class="nav-item"
+            style="border-radius:8px;"
+            onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
+            onmouseout="this.style.backgroundColor=''; this.style.color='';">
+                <a class="nav-link" href="index.php?pg=admin&tab=voirboss">Voir boss</a>
+            </li>
+        <?php endif; ?>
 
-<?php if(Auth::access('cashier')): ?>
-    <!-- Ceci sera visible par Admin, Supervisor et Cashier -->
-    <li class="nav-item" class="nav-item"
-    style="border-radius:8px;"
-    onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
-    onmouseout="this.style.backgroundColor=''; this.style.color='';">
-        <a class="nav-link" href="index.php?pg=admin&tab=depense">Expenses</a>
-    </li>
-<?php endif; ?>
+        <?php if(Auth::access('cashier')): ?>
+            <!-- Ceci sera visible par Admin, Supervisor et Cashier -->
+            <li class="nav-item" class="nav-item"
+            style="border-radius:8px;"
+            onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
+            onmouseout="this.style.backgroundColor=''; this.style.color='';">
+                <a class="nav-link" href="index.php?pg=admin&tab=depense">Expenses</a>
+            </li>
+        <?php endif; ?>
 
 	        
 	        <?php if(Auth::access('supervisor')):?>
 		        <li class="nav-item" class="nav-item"
-    style="border-radius:8px;"
-    onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
-    onmouseout="this.style.backgroundColor=''; this.style.color='';">
-		          <a class="nav-link" href="index.php?pg=admin">Admin</a>
-		        </li>
+                style="border-radius:8px;"
+                onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
+                onmouseout="this.style.backgroundColor=''; this.style.color='';">
+            		          <a class="nav-link" href="index.php?pg=admin">Admin</a>
+        		</li>
 		    <?php endif;?>
 
 		    <?php if(!Auth::logged_in()):?>

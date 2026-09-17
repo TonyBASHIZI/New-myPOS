@@ -129,8 +129,18 @@ require views_path('partials/header');
                     style="border-radius:8px; padding-bottom: 12px;"
                     onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
                     onmouseout="this.style.backgroundColor=''; this.style.color='';"><i class="fa fa-shopping-cart"></i> Sales</li>
-				</a>
-				<?php endif;?>
+		</a>
+
+		<?php endif;?>
+		
+		<?php if(Auth::access('user')):?>
+		<li class="nav-item" class="nav-item"
+		    style="border-radius:8px;"
+		    onmouseover="this.style.backgroundColor='red'; this.style.color='white';"
+		    onmouseout="this.style.backgroundColor=''; this.style.color='';">
+		    <a class="nav-link" href="index.php?pg=admin&tab=my-orders">My Orders</a>
+		</li>
+		<?php endif;?>
 				<!-- <a href="index.php?pg=admin&tab=rapport">
 			  		<li class="list-group-item <?=$tab=='rapport'?'active':''?>"><i class="fa fa-money-bill-wave"></i> Rapport</li>
 				</a> -->
@@ -152,8 +162,11 @@ require views_path('partials/header');
 			
 			    switch ($tab) {
 
+			    	case 'my-orders':
+				    require views_path('admin/my-orders');
+				   		 break;
 			    	case 'expiring-products':
-			    	
+
 				    require views_path('admin/expiring-products');
 				    	break;
 			    	case 'print_labels':
