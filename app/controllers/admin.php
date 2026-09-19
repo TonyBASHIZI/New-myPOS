@@ -478,140 +478,74 @@ if($tab == "productshistorique")
 }else if($tab == "orders"){
     $db = new Database();
 
-    $page      = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-    $per_page  = 20;
-    $offset    = ($page - 1) * $per_page;
-
-    $search    = isset($_GET['search']) ? trim($_GET['search']) : '';
-    $date_from = isset($_GET['date_from']) ? trim($_GET['date_from']) : '';
-    $date_to   = isset($_GET['date_to']) ? trim($_GET['date_to']) : '';
-
-    $where  = "WHERE 1=1";
-    $params = [];
-
-    if($search !== '')
-    {
-        $where .= " AND (
-            o.order_no LIKE :search
-            OR EXISTS (
-                SELECT 1 FROM order_items oi2
-                INNER JOIN products p2 ON p2.id = oi2.product_id
-                WHERE oi2.order_id = o.id AND p2.description LIKE :search
-            )
-            OR EXISTS (
-                SELECT 1 FROM users u2
-                WHERE u2.id = o.created_by AND u2.username LIKE :search
-            )
-        )";
-        $params['search'] = '%' . $search . '%';
-    }
-
-    if($date_from !== '')
-    {
-        $where .= " AND DATE(o.created_at) >= :date_from";
-        $params['date_from'] = $date_from;
-    }
-
-    if($date_to !== '')
-    {
-        $where .= " AND DATE(o.created_at) <= :date_to";
-        $params['date_to'] = $date_to;
-    }
-
-    $count_query = "SELECT COUNT(DISTINCT o.id) as total FROM orders o $where";
-    $count_result = $db->query($count_query, $params);
-    $total_orders = $count_result[0]['total'];
-    $total_pages  = max(1, ceil($total_orders / $per_page));
-
-    $id_query = "
-        SELECT o.id FROM orders o
-        $where
-        GROUP BY o.id
-        ORDER BY o.created_at DESC
-        LIMIT $per_page OFFSET $offset
-    ";
-    $page_ids_result = $db->query($id_query, $params);
-    $id_list = array_column((array)$page_ids_result, 'id');
+    $rows = $db->query("
+        SELECT 
+            o.id AS order_id,
+            o.order_no,
+            o.customer_name,
+            o.customer_phone,
+            o.status,
+            o.total AS order_total,
+            o.created_by,
+            o.ref_user,
+            o.created_at,
+            creator.username AS creator_name,
+            approver.username AS approver_name,
+            oi.id AS order_item_id,
+            oi.qty,
+            oi.price,
+            oi.total AS line_total,
+            p.id AS product_id,
+            p.description,
+            p.barcode,
+            p.image
+        FROM orders o
+        INNER JOIN order_items oi ON oi.order_id = o.id
+        INNER JOIN products p ON p.id = oi.product_id
+        LEFT JOIN users creator ON creator.id = o.created_by
+        LEFT JOIN users approver ON approver.id = o.ref_user
+        ORDER BY o.created_at DESC, o.id, oi.id
+    ");
 
     $orders = [];
-
-    if(!empty($id_list))
+    if(is_array($rows))
     {
-        $in_placeholders = [];
-        $in_params = [];
-        foreach($id_list as $i => $oid)
+        foreach($rows as $row)
         {
-            $key = "id$i";
-            $in_placeholders[] = ":$key";
-            $in_params[$key] = $oid;
-        }
-
-        $query = "
-		SELECT 
-		    o.id AS order_id,
-		    o.order_no,
-		    o.customer_name,
-		    o.customer_phone,
-		    o.status,
-		    o.total AS order_total,
-		    o.created_by,
-		    o.ref_user,
-		    o.created_at,
-		    creator.username AS creator_name,
-		    approver.username AS approver_name,
-		    oi.id AS order_item_id,
-		    oi.qty,
-		    oi.price,
-		    oi.total AS line_total,
-		    p.id AS product_id,
-		    p.description,
-		    p.barcode,
-		    p.image
-		FROM orders o
-		INNER JOIN order_items oi ON oi.order_id = o.id
-		INNER JOIN products p ON p.id = oi.product_id
-		LEFT JOIN users creator ON creator.id = o.created_by
-		LEFT JOIN users approver ON approver.id = o.ref_user
-		ORDER BY o.created_at DESC, o.id, oi.id
-		";
-		$rows = $db->query($query);
-
-        if(is_array($rows))
-        {
-            foreach($rows as $row)
+            $oid = $row['order_id'];
+            if(!isset($orders[$oid]))
             {
-                $oid = $row['order_id'];
-                if(!isset($orders[$oid]))
-                {
-                    $orders[$oid] = [
-                        'order_id'       => $row['order_id'],
-                        'order_no'       => $row['order_no'],
-                        'customer_name'  => $row['customer_name'],
-                        'customer_phone' => $row['customer_phone'],
-                        'status'         => $row['status'],
-                        'order_total'    => $row['order_total'],
-                        'created_by'     => $row['created_by'],
-                        'creator_name'   => $row['creator_name'],
-                        'ref_user'       => $row['ref_user'],
-                        'approver_name'  => $row['approver_name'],
-                        'created_at'     => $row['created_at'],
-                        'items'          => [],
-                    ];
-                }
-                $orders[$oid]['items'][] = [
-                    'order_item_id' => $row['order_item_id'],
-                    'product_id'    => $row['product_id'],
-                    'description'   => $row['description'],
-                    'barcode'       => $row['barcode'],
-                    'image'         => $row['image'],
-                    'qty'           => $row['qty'],
-                    'price'         => $row['price'],
-                    'line_total'    => $row['line_total'],
+                $orders[$oid] = [
+                    'order_id'       => $row['order_id'],
+                    'order_no'       => $row['order_no'],
+                    'customer_name'  => $row['customer_name'],
+                    'customer_phone' => $row['customer_phone'],
+                    'status'         => $row['status'],
+                    'order_total'    => $row['order_total'],
+                    'created_by'     => $row['created_by'],
+                    'creator_name'   => $row['creator_name'],
+                    'ref_user'       => $row['ref_user'],
+                    'approver_name'  => $row['approver_name'],
+                    'created_at'     => $row['created_at'],
+                    'items'          => [],
                 ];
             }
+            $orders[$oid]['items'][] = [
+                'order_item_id' => $row['order_item_id'],
+                'product_id'    => $row['product_id'],
+                'description'   => $row['description'],
+                'barcode'       => $row['barcode'],
+                'image'         => $row['image'],
+                'qty'           => $row['qty'],
+                'price'         => $row['price'],
+                'line_total'    => $row['line_total'],
+            ];
         }
-        $orders = array_values($orders);
     }
+    $orders = array_values($orders);
+
+   
+
 }else if($tab == "my-orders"){
     $db = new Database();
     $my_id = auth("id");

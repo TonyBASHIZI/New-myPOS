@@ -50,7 +50,7 @@ require views_path('partials/header');
                     <?php foreach($order['items'] as $i => $item):?>
                     <tr>
                         <?php if($i == 0):?>
-                        <td rowspan="<?=$item_count?>"><?=esc($order['order_no'])?></td>
+                        <td rowspan="<?=$item_count?>"><?=esc($order['order_no'])?>/<?=esc($order['order_id'])?></td>
                         <?php endif;?>
                         <td><?=esc($item['barcode'])?></td>
                         <td><?=esc($item['description'])?></td>
